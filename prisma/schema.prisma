@@ -1,0 +1,73 @@
+// prisma/schema.prisma - Complete schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Lead {
+  id          String   @id @default(cuid())
+  token       String   @unique
+  email       String?  @unique
+  firstName   String?
+  lastName    String?
+  phone       String?
+  linkedinUrl String?  @unique
+
+  // Enriched Work History
+  positions Position[]
+
+  // Availability
+  availability Availability?
+
+  // Status tracking
+  isOnboarded Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Position {
+  id          String  @id @default(cuid())
+  leadId      String
+  lead        Lead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  companyName String
+  companyLogo String?
+  title       String
+  startDate   String?
+  endDate     String?
+  isCurrent   Boolean @default(false)
+}
+
+// Availability Model
+model Availability {
+  id               String  @id @default(cuid())
+  leadId           String  @unique
+  lead             Lead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  // Days available
+  monday    Boolean @default(false)
+  tuesday   Boolean @default(false)
+  wednesday Boolean @default(false)
+  thursday  Boolean @default(false)
+  friday    Boolean @default(false)
+  saturday  Boolean @default(false)
+  sunday    Boolean @default(false)
+
+  // Time preferences
+  morning   Boolean @default(true)
+  afternoon Boolean @default(true)
+  evening   Boolean @default(false)
+
+  // Additional options
+  timezone       String  @default("America/New_York")
+  isImmediatelyAvailable Boolean @default(false)
+  noticePeriod   String?
+  contactMethod  String  @default("email")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
