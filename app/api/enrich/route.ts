@@ -25,6 +25,13 @@ export async function POST(request: NextRequest) {
       enrichedData = await enrichLeadByEmail(email);
     }
 
+    if (!enrichedData) {
+      return NextResponse.json(
+        { error: 'Failed to enrich lead data' },
+        { status: 500 }
+      );
+    }
+
     // Generate unique token if requested
     const token = generateToken 
       ? `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`
