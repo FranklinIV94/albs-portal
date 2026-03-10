@@ -6,7 +6,7 @@ import {
   FormControlLabel, Checkbox, TextField, Select, MenuItem, 
   FormControl, InputLabel, Alert, Stack
 } from '@mui/material';
-import { TimeRange, AccessTime, Schedule } from '@mui/icons-material';
+import { Schedule } from '@mui/icons-material';
 
 interface AvailabilityData {
   monday: boolean;

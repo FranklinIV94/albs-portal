@@ -35,12 +35,12 @@ export async function POST(request: NextRequest) {
     // Generate unique token if requested
     const token = generateToken 
       ? `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`
-      : null;
+      : `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
 
     // Save to database
     const lead = await prisma.lead.upsert({
       where: { 
-        email: enrichedData.email || undefined 
+        email: enrichedData.email || 'pending-' + Date.now() + '@pending.com' 
       },
       update: {
         firstName: enrichedData.firstName,
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
         linkedinUrl: enrichedData.linkedinUrl,
       },
       create: {
-        token: token || undefined,
+        token: token,
         email: enrichedData.email,
         firstName: enrichedData.firstName,
         lastName: enrichedData.lastName,
