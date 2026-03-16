@@ -35,15 +35,45 @@ export async function PUT(request: NextRequest) {
       });
     }
 
+    // Handle custom-* service IDs by creating them on-the-fly
+    const customServiceIds = toAdd.filter((id: string) => id.startsWith('custom-'));
+    const regularServiceIds = toAdd.filter((id: string) => !id.startsWith('custom-'));
+    
+    // Create custom services in the database if needed
+    if (customServiceIds.length > 0) {
+      for (const customId of customServiceIds) {
+        // Check if this custom service already exists in Service table
+        const existingCustomService = await prisma.service.findUnique({
+          where: { id: customId },
+        });
+        
+        if (!existingCustomService) {
+          // Extract custom name and price from the payload or use defaults
+          const customPrice = customPrices?.[customId] || 0;
+          await prisma.service.create({
+            data: {
+              id: customId,
+              name: `Custom Service #${customId.slice(-6)}`,
+              description: 'Custom service tailored to client',
+              basePrice: customPrice,
+              category: 'CUSTOM',
+              icon: '🎯',
+              isActive: true,
+            },
+          });
+        }
+      }
+    }
+
     // Add new services (with optional custom prices) - validate serviceId exists first
-    if (toAdd.length > 0) {
-      // Verify all serviceIds exist in the Service table
+    if (regularServiceIds.length > 0) {
+      // Verify all regular serviceIds exist in the Service table
       const validServices = await prisma.service.findMany({
-        where: { id: { in: toAdd } },
+        where: { id: { in: regularServiceIds } },
         select: { id: true },
       });
       const validServiceIds = validServices.map(s => s.id);
-      const invalidServiceIds = toAdd.filter((id: string) => !validServiceIds.includes(id));
+      const invalidServiceIds = regularServiceIds.filter((id: string) => !validServiceIds.includes(id));
       
       if (invalidServiceIds.length > 0) {
         return NextResponse.json({ 
@@ -51,23 +81,24 @@ export async function PUT(request: NextRequest) {
           invalidIds: invalidServiceIds 
         }, { status: 400 });
       }
+    }
 
-      for (const serviceId of toAdd) {
-        const customPrice = customPrices?.[serviceId];
-        await prisma.leadService.upsert({
-          where: {
-            leadId_serviceId: { leadId, serviceId },
-          },
-          create: {
-            leadId,
-            serviceId,
-            customPrice: customPrice || null,
-          },
-          update: {
-            customPrice: customPrice || null,
-          },
-        });
-      }
+    // Now add all services (including the newly created custom services)
+    for (const serviceId of toAdd) {
+      const customPrice = customPrices?.[serviceId];
+      await prisma.leadService.upsert({
+        where: {
+          leadId_serviceId: { leadId, serviceId },
+        },
+        create: {
+          leadId,
+          serviceId,
+          customPrice: customPrice || null,
+        },
+        update: {
+          customPrice: customPrice || null,
+        },
+      });
     }
 
     // Update custom prices for existing services
