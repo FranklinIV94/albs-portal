@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const CALENDAR_HUB_URL = process.env.CALENDAR_HUB_URL || 'https://vercel-app-sooty-nu.vercel.app'
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { action, event } = body
