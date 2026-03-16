@@ -2,11 +2,13 @@
 
 ## March 16, 2026
 
-### 1. Calendar → Outlook Sync Not Working (IN PROGRESS)
-- **Status:** No Microsoft Graph integration exists
-- **Current:** Calendar events only stored in database, no Outlook sync
-- **Need:** Add MS Graph API integration with OAuth for Franklin's Outlook calendar
-- **Effort:** Medium-High - requires OAuth flow and Graph API calls
+### 1. Calendar → Outlook Sync (COMPLETED ✓)
+- **Status:** DEPLOYED 2026-03-16
+- **Changes:** 
+  - Added Microsoft Graph API integration (lib/graph.ts)
+  - Events now sync to Franklin's Outlook calendar on booking
+  - Added outlookEventId field to track synced events
+- **Config:** Azure AD app credentials set in Vercel
 
 ### 2. Resend Email Sending Failed (FIXED ✓)
 - **Status:** FIXED 2026-03-16
