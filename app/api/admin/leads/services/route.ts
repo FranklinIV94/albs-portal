@@ -56,7 +56,7 @@ export async function PUT(request: NextRequest) {
               name: `Custom Service #${customId.slice(-6)}`,
               description: 'Custom service tailored to client',
               basePrice: customPrice,
-              category: 'CUSTOM',
+              category: 'CONSULTING',
               icon: '🎯',
               isActive: true,
             },
