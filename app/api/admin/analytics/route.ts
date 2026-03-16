@@ -33,14 +33,14 @@ export async function GET(request: NextRequest) {
       orderBy: { paidAt: 'desc' },
     });
 
-    // Calculate revenue
-    const monthRevenue = payments
+    // Calculate revenue (amounts stored in cents, convert to dollars)
+    const monthRevenue = Math.round(payments
       .filter(p => p.paidAt && new Date(p.paidAt) >= startOfMonth)
-      .reduce((sum, p) => sum + p.amount, 0);
+      .reduce((sum, p) => sum + p.amount, 0) / 100);
 
-    const yearRevenue = payments
+    const yearRevenue = Math.round(payments
       .filter(p => p.paidAt && new Date(p.paidAt) >= startOfYear)
-      .reduce((sum, p) => sum + p.amount, 0);
+      .reduce((sum, p) => sum + p.amount, 0) / 100);
 
     // Get active clients count
     const activeClients = await prisma.lead.count({
@@ -89,10 +89,10 @@ export async function GET(request: NextRequest) {
       const payouts = await stripe.payouts.list({ limit: 20 });
       stripePayouts = payouts.data.map((p: any) => ({
         id: p.id,
-        amount: p.amount,
+        amount: Math.round(p.amount / 100), // Convert cents to dollars
         status: p.status,
-        created: p.created, // Unix timestamp in seconds
-        arrivalDate: p.arrival_date || null,
+        created: p.created ? new Date(p.created * 1000).toISOString() : null, // Convert Unix timestamp to ISO string
+        arrivalDate: p.arrival_date ? new Date(p.arrival_date * 1000).toISOString() : null,
       }));
     } catch (stripeError: any) {
       console.log('Stripe payouts not available:', stripeError.message);

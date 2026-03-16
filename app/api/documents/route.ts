@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       const clientName = [lead.firstName, lead.lastName].filter(Boolean).join(' ') || lead.company || 'Unknown';
       
       await resend.emails.send({
-        from: 'ALBS Portal <onboarding@simplifyingbusinesses.com>',
+        from: 'Franklintaxpros@gmail.com',
         to: ['support@simplifyingbusinesses.com'],
         reply_to: 'Franklintaxpros@gmail.com',
         subject: `📄 Document Upload: ${clientName} - ${file.name}`,

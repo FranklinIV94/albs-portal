@@ -44,6 +44,9 @@ model Lead {
   // Stripe customer ID for card-on-file billing
   stripeCustomerId  String?
   
+  // Client portal PIN (6 digits)
+  portalPin        String?
+  
   // Timestamps
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -62,6 +65,7 @@ model Lead {
   tasks         Task[]
   adminNotes         Note[]
   activityLogs  ActivityLog[]
+  calendarEvents CalendarEvent[]
 }
 
 enum LeadStatus {
@@ -412,4 +416,23 @@ enum ActivityType {
   TASK_COMPLETED
   BOOKING_CREATED
   MESSAGE_RECEIVED
+}
+
+// Calendar events for bookings
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  eventType   String   @default("consultation")
+  status      String   @default("pending")
+  location    String?
+  attendees   String?  // JSON string of attendee emails
+  leadId      String?  // Optional link to a lead
+  lead        Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  createdBy   String   @default("portal")
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

@@ -46,15 +46,15 @@ export async function GET(request: NextRequest) {
     // If lead has explicit onboardingStep and is completed, use those values
     if (lead.onboardingStep && typeof lead.onboardingStep === 'number') {
       const stepNum = Math.min(Math.max(lead.onboardingStep, 0), 7);
-      // Mark all steps up to current as completed
-      for (let i = 0; i < stepNum; i++) {
+      // Mark all steps up to current as completed (include payment step before complete)
+      for (let i = 0; i <= stepNum; i++) {
         if (stepKeys[i] && !completedSteps.includes(stepKeys[i])) {
           completedSteps.push(stepKeys[i]);
         }
       }
       currentStep = stepKeys[stepNum] || 'welcome';
       // If onboardingCompleted is true, mark complete
-      if (lead.onboardingCompleted) {
+      if (lead.onboardingCompleted && !completedSteps.includes('complete')) {
         completedSteps.push('complete');
         currentStep = 'complete';
       }

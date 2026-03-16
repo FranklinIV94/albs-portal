@@ -128,6 +128,21 @@ export async function POST(request: NextRequest, { params }: { params: { token: 
 
     // Handle service selections
     if (serviceIds && serviceIds.length > 0) {
+      // Validate all serviceIds exist first (BUG-001 fix)
+      const validServices = await prisma.service.findMany({
+        where: { id: { in: serviceIds } },
+        select: { id: true },
+      });
+      const validServiceIds = validServices.map(s => s.id);
+      const invalidServiceIds = serviceIds.filter((id: string) => !validServiceIds.includes(id));
+      
+      if (invalidServiceIds.length > 0) {
+        return NextResponse.json({ 
+          error: 'Invalid service(s) selected', 
+          invalidIds: invalidServiceIds 
+        }, { status: 400 });
+      }
+      
       // Remove existing selections
       await prisma.leadService.deleteMany({ where: { leadId: lead.id } });
       
@@ -184,12 +199,26 @@ export async function PUT(request: NextRequest, { params }: { params: { token: s
   try {
     const token = params.token;
     const body = await request.json();
-    const { signatureName, ipAddress } = body;
+    const { signatureName, ipAddress, portalPin, onboardingStep, onboardingCompleted } = body;
 
     // Find lead
     const existingLead = await prisma.lead.findUnique({ where: { token } });
     if (!existingLead) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+    }
+
+    // Early return for PIN-only update (no signature needed)
+    if (portalPin && !signatureName) {
+      const lead = await prisma.lead.update({
+        where: { token },
+        data: { 
+          portalPin,
+          onboardingStep: onboardingStep ?? 4,
+          onboardingCompleted: onboardingCompleted ?? true,
+          status: 'ACTIVE',
+        },
+      });
+      return NextResponse.json({ success: true, lead });
     }
 
     // Get services for the agreement
@@ -273,13 +302,29 @@ Date: ${new Date().toLocaleDateString()}`;
       },
     });
 
-    // Update lead status to CONTRACT (awaiting payment) and mark step progress
+    // Update lead status based on progress
+    const updateData: any = { 
+      status: onboardingCompleted ? 'ACTIVE' : 'CONTRACT',
+    };
+    
+    // Update step if provided (for PIN setup)
+    if (onboardingStep !== undefined) {
+      updateData.onboardingStep = onboardingStep;
+    }
+    
+    // Mark complete if PIN was set
+    if (onboardingCompleted) {
+      updateData.onboardingCompleted = true;
+    }
+    
+    // Save PIN if provided
+    if (portalPin) {
+      updateData.portalPin = portalPin;
+    }
+    
     const lead = await prisma.lead.update({
       where: { token },
-      data: { 
-        status: 'CONTRACT',
-        onboardingStep: 3,  // Terms step completed, moving to payment
-      },
+      data: updateData,
     });
 
     return NextResponse.json({ success: true, lead, contract });

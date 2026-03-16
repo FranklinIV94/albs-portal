@@ -8,8 +8,8 @@ import {
   Paper, Stack, Alert, CircularProgress, Chip, Divider
 } from '@mui/material';
 import { 
-  CheckCircle, ArrowForward, ArrowBack, CreditCard, 
-  Business, Schedule, Description, Autorenew
+  CheckCircle, ArrowForward, ArrowBack, Lock, 
+  Business, Schedule, Description
 } from '@mui/icons-material';
 import ProgressTracker from '@/components/ProgressTracker';
 import ChatPanel from '@/components/ChatPanel';
@@ -36,7 +36,7 @@ interface Lead {
   leadServices?: { service: Service }[];
 }
 
-const STEPS = ['Welcome', 'Services', 'Availability', 'Terms', 'Payment', 'Confirmation'];
+const STEPS = ['Welcome', 'Services', 'Availability', 'PIN Setup', 'Confirmation'];
 
 const CATEGORIES: Record<string, string> = {
   AI_SERVICES: '🤖 AI Services',
@@ -83,8 +83,9 @@ export default function OnboardPage() {
     morning: true, afternoon: true, evening: false,
   });
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [billingType, setBillingType] = useState<'ONE_TIME' | 'MONTHLY' | 'YEARLY'>('ONE_TIME');
-  const [stripeError, setStripeError] = useState<string | null>(null);
+  const [portalPin, setPortalPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinError, setPinError] = useState('');
 
   useEffect(() => { setMounted(true); }, []);
   useEffect(() => { fetchLead(); }, [token]);
@@ -137,7 +138,6 @@ export default function OnboardPage() {
 
   const handleNext = async () => {
     setSaving(true);
-    setStripeError(null);
     try {
       if (activeStep === 0) {
         await fetch(`/api/onboard/${token}`, {
@@ -157,7 +157,7 @@ export default function OnboardPage() {
       } else if (activeStep === 3) {
         await fetch(`/api/onboard/${token}/complete`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ signatureName: formData.signature, ipAddress: '0.0.0.0' }),
+          body: JSON.stringify({ signatureName: formData.signature, ipAddress: '0.0.0.0', onboardingStep: 3 }),
         });
       }
       setActiveStep(prev => prev + 1);
@@ -258,10 +258,19 @@ export default function OnboardPage() {
             </Card>
           )}
 
-          <Button variant="contained" href="mailto:support@simplifyingbusinesses.com"
-            sx={{ background: 'linear-gradient(135deg, #a78bfa, #6366f1)', color: '#fff', px: 4, py: 1.5, borderRadius: 3, fontWeight: 'bold' }}>
-            Contact Support
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap', mb: 2 }}>
+            <Button 
+              variant="contained" 
+              href="/calendar"
+              target="_blank"
+              sx={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', px: 4, py: 1.5, borderRadius: 3, fontWeight: 'bold' }}>
+              📅 Book a Call
+            </Button>
+            <Button variant="outlined" href="mailto:support@simplifyingbusinesses.com"
+              sx={{ borderColor: '#a78bfa', color: '#a78bfa', px: 4, py: 1.5, borderRadius: 3, fontWeight: 'bold' }}>
+              Contact Support
+            </Button>
+          </Box>
         </Box>
       </Box>
     );
@@ -429,6 +438,19 @@ export default function OnboardPage() {
                   />
                 ))}
               </Box>
+
+              <Box sx={{ mt: 4, p: 2, bgcolor: 'rgba(16,185,129,0.1)', borderRadius: 2, border: '1px solid rgba(16,185,129,0.3)' }}>
+                <Typography sx={{ color: '#10b981', fontWeight: 'bold', mb: 1 }}>
+                  💡 Want to schedule a consultation now?
+                </Typography>
+                <Button 
+                  variant="outlined" 
+                  href="/calendar" 
+                  target="_blank"
+                  sx={{ borderColor: '#10b981', color: '#10b981', '&:hover': { bgcolor: 'rgba(16,185,129,0.1)' } }}>
+                  📅 Book a Call
+                </Button>
+              </Box>
             </CardContent>
           </Card>
         )}
@@ -510,150 +532,122 @@ Client:  _________________________ Date: _____________`}
           </Card>
         )}
 
-        {/* Payment */}
+        {/* PIN Setup - Step 4 */}
         {activeStep === 4 && (
           <Card sx={{ bgcolor: themeStyles.cardBg, border: `1px solid ${themeStyles.cardBorder}`, borderRadius: 4, animation: 'fadeInUp 0.5s ease-out', textAlign: 'center', p: 4 }}>
             <CardContent>
-              <CreditCard sx={{ fontSize: 60, color: '#a78bfa', mb: 2 }} />
+              <Lock sx={{ fontSize: 60, color: '#a78bfa', mb: 2 }} />
               <Typography sx={{ fontSize: 24, fontWeight: 'bold', color: themeStyles.textPrimary, mb: 1 }}>
-                Complete Your Payment
+                Set Your Portal PIN
               </Typography>
               <Typography sx={{ color: themeStyles.textMuted, mb: 3 }}>
-                Secure payment powered by Stripe
+                Create a 6-digit PIN to access your client portal
               </Typography>
 
-              {/* Payment error message */}
-              {stripeError && (
-                <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }}>
-                  <Typography variant="body2">
-                    <strong>Payment unavailable:</strong> {stripeError}.{' '}
-                    Please contact us at{' '}
-                    <a href="mailto:support@simplifyingbusinesses.com" style={{ color: '#2563eb' }}>
-                      support@simplifyingbusinesses.com
-                    </a>
-                  </Typography>
-                </Alert>
+              {pinError && (
+                <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }}>{pinError}</Alert>
               )}
 
-              {/* Billing Type Selection */}
-              <Box sx={{ mb: 3 }}>
-                <Typography sx={{ color: themeStyles.textMuted, mb: 2, fontWeight: 'bold' }}>
-                  Select Billing Option:
-                </Typography>
-                <Stack direction="row" spacing={2} justifyContent="center">
-                  <Button
-                    variant={billingType === 'ONE_TIME' ? 'contained' : 'outlined'}
-                    onClick={() => setBillingType('ONE_TIME')}
-                    sx={{ 
-                      borderColor: 'rgba(255,255,255,0.2)', 
-                      color: billingType === 'ONE_TIME' ? '#fff' : themeStyles.textMuted,
-                      background: billingType === 'ONE_TIME' ? 'linear-gradient(135deg, #a78bfa, #6366f1)' : 'transparent',
-                      '&:hover': { borderColor: '#a78bfa' }
-                    }}
-                  >
-                    One-Time Payment
-                  </Button>
-                  <Button
-                    variant={billingType === 'MONTHLY' ? 'contained' : 'outlined'}
-                    onClick={() => setBillingType('MONTHLY')}
-                    sx={{ 
-                      borderColor: 'rgba(255,255,255,0.2)', 
-                      color: billingType === 'MONTHLY' ? '#fff' : themeStyles.textMuted,
-                      background: billingType === 'MONTHLY' ? 'linear-gradient(135deg, #a78bfa, #6366f1)' : 'transparent',
-                      '&:hover': { borderColor: '#a78bfa' }
-                    }}
-                  >
-                    <Autorenew sx={{ mr: 1 }} /> Monthly
-                  </Button>
-                  <Button
-                    variant={billingType === 'YEARLY' ? 'contained' : 'outlined'}
-                    onClick={() => setBillingType('YEARLY')}
-                    sx={{ 
-                      borderColor: 'rgba(255,255,255,0.2)', 
-                      color: billingType === 'YEARLY' ? '#fff' : themeStyles.textMuted,
-                      background: billingType === 'YEARLY' ? 'linear-gradient(135deg, #a78bfa, #6366f1)' : 'transparent',
-                      '&:hover': { borderColor: '#a78bfa' }
-                    }}
-                  >
-                    <Autorenew sx={{ mr: 1 }} /> Yearly (Save 10%)
-                  </Button>
-                </Stack>
-              </Box>
-
               <Paper sx={{ p: 3, mb: 3, textAlign: 'left', bgcolor: 'rgba(0,0,0,0.2)', border: `1px solid ${themeStyles.cardBorder}` }}>
-                <Typography sx={{ fontWeight: 'bold', color: themeStyles.textPrimary, mb: 2 }}>Order Summary:</Typography>
-                {selectedServices.map(id => {
-                  const s = services.find(x => x.id === id);
-                  if (!s) return null;
-                  const price = parseInt(s.priceDisplay.replace(/[$,]/g, '').split('-')[0]) || 0;
-                  const displayPrice = billingType === 'YEARLY' 
-                    ? `$${(price * 12 * 0.9).toLocaleString()}/yr`
-                    : billingType === 'MONTHLY'
-                    ? `$${price}/mo`
-                    : s.priceDisplay;
-                  return (
-                    <Box key={id} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography sx={{ color: themeStyles.textMuted }}>{s.icon} {s.name}</Typography>
-                      <Typography sx={{ fontWeight: 'bold', color: themeStyles.textPrimary }}>{displayPrice}</Typography>
-                    </Box>
-                  );
-                })}
-                <Divider sx={{ my: 2, borderColor: themeStyles.cardBorder }} />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography sx={{ fontWeight: 'bold', color: themeStyles.textPrimary }}>
-                    {billingType === 'ONE_TIME' ? 'Total:' : billingType === 'MONTHLY' ? 'Monthly Total:' : 'Yearly Total (10% off):'}
-                  </Typography>
-                  <Typography sx={{ fontWeight: 'bold', color: '#a78bfa', fontSize: 20 }}>
-                    ${billingType === 'YEARLY' 
-                      ? Math.round(getTotal() * 12 * 0.9).toLocaleString()
-                      : billingType === 'MONTHLY'
-                      ? getTotal().toLocaleString()
-                      : getTotal().toLocaleString()
-                    }
-                    {billingType !== 'ONE_TIME' && <sup>/{billingType === 'MONTHLY' ? 'mo' : 'yr'}</sup>}
-                  </Typography>
-                </Box>
+                <Typography sx={{ color: themeStyles.textMuted, mb: 2 }}>
+                  This PIN will be required each time you access your client portal to view invoices, make payments, and manage your account.
+                </Typography>
+                
+                <TextField
+                  label="6-Digit PIN"
+                  type="password"
+                  fullWidth
+                  value={portalPin}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setPortalPin(val);
+                    setPinError('');
+                  }}
+                  inputProps={{ maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }}
+                  placeholder="Enter 6 digits"
+                  sx={{ mb: 2, 
+                    '& .MuiInputLabel-root': { color: '#94a3b8' }, 
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#a78bfa' },
+                    '& .MuiOutlinedInput-root': { color: '#fff' },
+                    '& .MuiOutlinedInput-input': { color: '#fff', caretColor: '#fff' },
+                  }}
+                  InputProps={{
+                    startAdornment: <Lock sx={{ mr: 1, color: '#94a3b8' }} />
+                  }}
+                  InputLabelProps={{ style: { color: '#94a3b8' } }}
+                />
+                
+                <TextField
+                  label="Confirm PIN"
+                  type="password"
+                  fullWidth
+                  value={confirmPin}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setConfirmPin(val);
+                    setPinError('');
+                  }}
+                  inputProps={{ maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }}
+                  placeholder="Confirm 6 digits"
+                  sx={{ 
+                    '& .MuiInputLabel-root': { color: '#94a3b8' }, 
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#a78bfa' },
+                    '& .MuiOutlinedInput-root': { color: '#fff' },
+                    '& .MuiOutlinedInput-input': { color: '#fff', caretColor: '#fff' },
+                  }}
+                  InputProps={{
+                    startAdornment: <Lock sx={{ mr: 1, color: '#94a3b8' }} />
+                  }}
+                  InputLabelProps={{ style: { color: '#94a3b8' } }}
+                />
               </Paper>
+
+              <Alert severity="info" sx={{ textAlign: 'left', mb: 2 }}>
+                <strong>Save this PIN!</strong> You'll need it to access your portal. If you forget it, contact support to reset.
+              </Alert>
 
               <Button 
                 variant="contained" 
                 size="large" 
                 onClick={async () => {
+                  if (portalPin.length !== 6) {
+                    setPinError('PIN must be exactly 6 digits');
+                    return;
+                  }
+                  if (portalPin !== confirmPin) {
+                    setPinError('PINs do not match');
+                    return;
+                  }
                   if (!lead) return;
+                  
                   setSaving(true);
-                  setStripeError(null);
                   try {
-                    // Use subscription API for recurring billing
-                    const endpoint = billingType === 'ONE_TIME' 
-                      ? '/api/stripe/checkout' 
-                      : '/api/stripe/subscription';
-                    
-                    const res = await fetch(endpoint, {
-                      method: 'POST',
+                    const res = await fetch(`/api/onboard/${token}/complete`, {
+                      method: 'PUT',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ 
-                        leadId: lead.id,
-                        interval: billingType === 'YEARLY' ? 'YEARLY' : 'MONTHLY'
+                        portalPin,
+                        onboardingStep: 4,
+                        onboardingCompleted: true
                       }),
                     });
-                    const data = await res.json();
-                    if (data.url) {
-                      window.location.href = data.url;
+                    if (res.ok) {
+                      setActiveStep(prev => prev + 1);
                     } else {
-                      setStripeError(data.error || 'Payment processing is temporarily unavailable. Please try again or contact support.');
+                      setPinError('Failed to save PIN. Please try again.');
                     }
                   } catch (err: any) {
-                    setStripeError('Payment processing is temporarily unavailable. Please try again or contact support.');
+                    setPinError(err.message || 'Failed to save PIN');
                   } finally {
                     setSaving(false);
                   }
-                }} 
-                disabled={saving || selectedServices.length === 0}
+                }}
+                disabled={saving || portalPin.length !== 6 || confirmPin.length !== 6}
                 sx={{ background: 'linear-gradient(135deg, #a78bfa, #6366f1)', color: '#fff', px: 6, py: 1.5, borderRadius: 3, fontWeight: 'bold', fontSize: 16,
-                  '&:hover': { background: 'linear-gradient(135deg, #8b5cf6, #4f46e5)' }, '&:disabled': { opacity: 0.5 }
+                  '&:hover': { background: 'linear-gradient(135deg, #8b5cf6, #4f46e5)' }, '&.Mui-disabled': { opacity: 0.5 }
                 }}
               >
-                {saving ? 'Processing...' : billingType === 'ONE_TIME' ? 'Pay with Stripe' : `Subscribe ${billingType === 'MONTHLY' ? 'Monthly' : 'Yearly'}`}
+                {saving ? 'Setting PIN...' : 'Complete Setup'}
               </Button>
             </CardContent>
           </Card>
@@ -668,8 +662,7 @@ Client:  _________________________ Date: _____________`}
           {activeStep < 4 && (
             <Button variant="contained" onClick={handleNext} disabled={saving || 
               (activeStep === 0 && (!formData.firstName || !formData.lastName || !formData.email)) ||
-              (activeStep === 1 && selectedServices.length === 0) ||
-              (activeStep === 3 && !formData.signature)
+              (activeStep === 1 && selectedServices.length === 0)
             }
               sx={{ background: 'linear-gradient(135deg, #a78bfa, #6366f1)', color: '#fff', px: 4, borderRadius: 2,
                 '&:hover': { background: 'linear-gradient(135deg, #8b5cf6, #4f46e5)' }, '&.Mui-disabled': { opacity: 0.5 }

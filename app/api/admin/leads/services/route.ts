@@ -42,25 +42,37 @@ export async function PUT(request: NextRequest) {
     // Create custom services in the database if needed
     if (customServiceIds.length > 0) {
       for (const customId of customServiceIds) {
+        // Get custom price from payload - THIS IS THE SOURCE OF TRUTH
+        const customPrice = customPrices?.[customId];
+        
         // Check if this custom service already exists in Service table
         const existingCustomService = await prisma.service.findUnique({
           where: { id: customId },
         });
         
         if (!existingCustomService) {
-          // Extract custom name and price from the payload or use defaults
-          const customPrice = customPrices?.[customId] || 0;
-          const priceDollars = customPrice / 100;
+          // Create new custom service with the price from payload
+          const priceToUse = customPrice || 0; // Default to 0 if not provided
+          const priceDollars = priceToUse / 100;
           await prisma.service.create({
             data: {
               id: customId,
               name: `Custom Service #${customId.slice(-6)}`,
               description: 'Custom service tailored to client',
-              basePrice: customPrice,
+              basePrice: priceToUse,
               priceDisplay: `$${priceDollars.toFixed(2)}`,
               category: 'CONSULTING',
               icon: '🎯',
               isActive: true,
+            },
+          });
+        } else if (customPrice && customPrice !== existingCustomService.basePrice) {
+          // Update existing custom service with new price if different
+          await prisma.service.update({
+            where: { id: customId },
+            data: { 
+              basePrice: customPrice,
+              priceDisplay: `$${(customPrice / 100).toFixed(2)}`
             },
           });
         }
@@ -86,8 +98,11 @@ export async function PUT(request: NextRequest) {
     }
 
     // Now add all services (including the newly created custom services)
+    // IMPORTANT: customPrice from payload is the source of truth, not Service.basePrice
     for (const serviceId of toAdd) {
+      // Get customPrice directly from payload - this overrides any Service.basePrice
       const customPrice = customPrices?.[serviceId];
+      
       await prisma.leadService.upsert({
         where: {
           leadId_serviceId: { leadId, serviceId },
@@ -95,10 +110,12 @@ export async function PUT(request: NextRequest) {
         create: {
           leadId,
           serviceId,
-          customPrice: customPrice || null,
+          // Explicitly save custom price if provided, otherwise use null
+          customPrice: customPrice !== undefined ? customPrice : null,
         },
         update: {
-          customPrice: customPrice || null,
+          // Only update customPrice if explicitly provided in payload
+          ...(customPrice !== undefined && { customPrice }),
         },
       });
     }

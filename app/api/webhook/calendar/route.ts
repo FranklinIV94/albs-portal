@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { PrismaClient } from '@prisma/client';
+import { sendBookingConfirmationEmail } from '@/lib/email';
 
+const prisma = new PrismaClient();
 const CALENDAR_HUB_URL = process.env.CALENDAR_HUB_URL || 'https://vercel-app-sooty-nu.vercel.app'
 
 export async function POST(request: NextRequest) {
@@ -40,6 +43,49 @@ export async function POST(request: NextRequest) {
       const data = await res.json()
 
       if (data.success) {
+        // Save to local database
+        const startDate = new Date(event.start_time);
+        const endDate = new Date(event.end_time);
+        
+        await prisma.calendarEvent.create({
+          data: {
+            title: event.title,
+            description: event.notes || '',
+            startTime: startDate,
+            endTime: endDate,
+            eventType: event.event_type || 'consultation',
+            status: 'confirmed',
+            location: event.location || 'Virtual',
+            attendees: JSON.stringify([event.lead_email].filter(Boolean)),
+            createdBy: 'portal',
+          }
+        });
+
+        // Send confirmation email to client
+        if (event.lead_email) {
+          const firstName = event.lead_name?.split(' ')[0] || 'Client';
+          const formattedDate = startDate.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          });
+          const formattedTime = startDate.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            timeZoneName: 'short'
+          });
+          
+          await sendBookingConfirmationEmail({
+            to: event.lead_email,
+            firstName,
+            date: formattedDate,
+            time: formattedTime,
+            timezone: 'Eastern Time',
+            notes: event.notes,
+          });
+        }
+
         return NextResponse.json({ 
           success: true, 
           event_id: data.event.id,

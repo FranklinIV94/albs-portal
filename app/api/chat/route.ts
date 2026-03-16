@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       const resend = getResend();
       if (resend) {
         await resend.emails.send({
-          from: 'ALBS Portal <onboarding@resend.dev>',
+          from: 'Franklintaxpros@gmail.com',
           reply_to: 'Franklintaxpros@gmail.com',
           to: ['support@simplifyingbusinesses.com'],
           subject: `💬 New Message from ${clientName}`,
@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
       const resend = getResend();
       if (resend) {
         await resend.emails.send({
-          from: 'ALBS <onboarding@resend.dev>',
+          from: 'Franklintaxpros@gmail.com',
           reply_to: 'Franklintaxpros@gmail.com',
           to: [lead.email],
           subject: '📬 New message from ALBS',
@@ -270,7 +270,7 @@ export async function PUT(request: NextRequest) {
     const resend = getResend();
     if (resend && lead.email) {
       await resend.emails.send({
-        from: 'ALBS <onboarding@resend.dev>',
+        from: 'Franklintaxpros@gmail.com',
         reply_to: 'Franklintaxpros@gmail.com',
         to: [lead.email],
         subject: '📋 New Service Proposal from ALBS',
