@@ -59,6 +59,9 @@ model Lead {
   projectTimeline ProjectTimeline?
   clientRequests ClientRequest[]
   proposals     Proposal[]
+  tasks         Task[]
+  adminNotes         Note[]
+  activityLogs  ActivityLog[]
 }
 
 enum LeadStatus {
@@ -338,4 +341,75 @@ enum RequestStatus {
   OPEN
   IN_PROGRESS
   RESOLVED
+}
+
+// Task management per lead
+model Task {
+  id          String     @id @default(cuid())
+  leadId      String
+  lead        Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  assignee    String?    // Admin email or role
+  dueDate     DateTime?
+  status      TaskStatus @default(PENDING)
+  priority    Priority   @default(MEDIUM)
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  completedAt DateTime?
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// Internal notes per lead (admin-only)
+model Note {
+  id         String   @id @default(cuid())
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  content    String
+  createdBy  String   // Admin email or name
+  isInternal Boolean  @default(true) // Distinguishes from client-facing chat
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Activity log for lead timeline
+model ActivityLog {
+  id          String       @id @default(cuid())
+  leadId      String
+  lead        Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type        ActivityType
+  description String
+  actor       String?      // Who performed the action
+  metadata    Json?        // Extra data (e.g., service name, amount)
+  
+  createdAt   DateTime     @default(now())
+}
+
+enum ActivityType {
+  SERVICE_ADDED
+  SERVICE_REMOVED
+  CONTRACT_SIGNED
+  PAYMENT_RECEIVED
+  LEAD_CREATED
+  STATUS_CHANGED
+  NOTE_ADDED
+  TASK_CREATED
+  TASK_COMPLETED
+  BOOKING_CREATED
+  MESSAGE_RECEIVED
 }

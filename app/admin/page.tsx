@@ -13,7 +13,8 @@ import {
 import { 
   PersonAdd, ContentCopy, Visibility, Edit, CheckCircle,
   Schedule, Payment, Description, Refresh, Save, Delete, Chat,
-  CloudUpload, Add, Send, AttachMoney, Settings, TrendingUp, AccountBalance
+  CloudUpload, Add, Send, AttachMoney, Settings, TrendingUp, AccountBalance,
+  Assignment, Note, History, CheckBox, Flag
 } from '@mui/icons-material';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -256,7 +257,7 @@ function AdminDashboardContent() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [customPrices, setCustomPrices] = useState<Record<string, number>>({});
   const [savingServices, setSavingServices] = useState(false);
-  const [leadTab, setLeadTab] = useState(0); // 0: Info, 1: Services, 2: Progress, 3: Chat, 4: Billing, 5: Client Requests
+  const [leadTab, setLeadTab] = useState(0); // 0: Info, 1: Services, 2: Progress, 3: Chat, 4: Client Requests, 5: Billing, 6: Tasks, 7: Notes, 8: Activity
   
   const chatLeadId = searchParams.get('chat');
   
@@ -294,6 +295,20 @@ function AdminDashboardContent() {
   const [customServicePrice, setCustomServicePrice] = useState('');
   const [customServiceDescription, setCustomServiceDescription] = useState('');
   const [customServices, setCustomServices] = useState<Record<string, any>>({});
+
+  // Tasks, Notes, Activity state
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [loadingNotes, setLoadingNotes] = useState(false);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+  
+  // New task/note form state
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'>('MEDIUM');
+  const [newNoteContent, setNewNoteContent] = useState('');
 
   // Proposal builder functions
   const handleServiceNotesChange = (serviceId: string, note: string) => {
@@ -430,6 +445,45 @@ function AdminDashboardContent() {
       console.error('Failed to fetch subscriptions:', err);
     } finally {
       setLoadingSubscriptions(false);
+    }
+  };
+
+  const fetchTasks = async (leadId: string) => {
+    setLoadingTasks(true);
+    try {
+      const res = await fetch(`/api/admin/leads/${leadId}/tasks`);
+      const data = await res.json();
+      setTasks(data.tasks || []);
+    } catch (err) {
+      console.error('Failed to fetch tasks:', err);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+
+  const fetchNotes = async (leadId: string) => {
+    setLoadingNotes(true);
+    try {
+      const res = await fetch(`/api/admin/leads/${leadId}/notes`);
+      const data = await res.json();
+      setNotes(data.notes || []);
+    } catch (err) {
+      console.error('Failed to fetch notes:', err);
+    } finally {
+      setLoadingNotes(false);
+    }
+  };
+
+  const fetchActivity = async (leadId: string) => {
+    setLoadingActivity(true);
+    try {
+      const res = await fetch(`/api/admin/leads/${leadId}/activity`);
+      const data = await res.json();
+      setActivityLogs(data.activities || []);
+    } catch (err) {
+      console.error('Failed to fetch activity:', err);
+    } finally {
+      setLoadingActivity(false);
     }
   };
 
@@ -1444,9 +1498,13 @@ function AdminDashboardContent() {
                 value={leadTab} 
                 onChange={(_, v) => {
                   setLeadTab(v);
-                  if (v === 4 && selectedLead) {
+                  if (v === 5 && selectedLead) {
                     fetchSubscriptions(selectedLead.id);
                   }
+                  // Fetch data for new tabs
+                  if (v === 6 && selectedLead) fetchTasks(selectedLead.id);
+                  if (v === 7 && selectedLead) fetchNotes(selectedLead.id);
+                  if (v === 8 && selectedLead) fetchActivity(selectedLead.id);
                 }} 
                 sx={{ mb: 2 }}
               >
@@ -1456,6 +1514,9 @@ function AdminDashboardContent() {
                 <Tab label="Chat" />
                 <Tab label="Client Requests" />
                 <Tab label="Billing" />
+                <Tab label="Tasks" />
+                <Tab label="Notes" />
+                <Tab label="Activity" />
               </Tabs>
 
               {/* Tab 0: Contact Info */}
@@ -1708,6 +1769,235 @@ function AdminDashboardContent() {
                         Refresh
                       </Button>
                     </Stack>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Tab 6: Tasks */}
+              {leadTab === 6 && selectedLead && (
+                <Box>
+                  <Typography variant="h6" gutterBottom sx={{ color: '#8b5cf6' }}>Tasks</Typography>
+                  
+                  {/* Add New Task */}
+                  <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+                    <Typography variant="subtitle2" gutterBottom>Add New Task</Typography>
+                    <Stack spacing={2}>
+                      <TextField
+                        label="Task Title"
+                        value={newTaskTitle}
+                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                        size="small"
+                        fullWidth
+                      />
+                      <TextField
+                        label="Description (optional)"
+                        value={newTaskDescription}
+                        onChange={(e) => setNewTaskDescription(e.target.value)}
+                        size="small"
+                        fullWidth
+                        multiline
+                        rows={2}
+                      />
+                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                        <FormControl size="small" sx={{ minWidth: 120 }}>
+                          <InputLabel>Priority</InputLabel>
+                          <Select
+                            value={newTaskPriority}
+                            label="Priority"
+                            onChange={(e) => setNewTaskPriority(e.target.value as any)}
+                          >
+                            <MenuItem value="LOW"><Chip label="LOW" size="small" color="default" /></MenuItem>
+                            <MenuItem value="MEDIUM"><Chip label="MEDIUM" size="small" color="info" /></MenuItem>
+                            <MenuItem value="HIGH"><Chip label="HIGH" size="small" color="warning" /></MenuItem>
+                            <MenuItem value="URGENT"><Chip label="URGENT" size="small" color="error" /></MenuItem>
+                          </Select>
+                        </FormControl>
+                        <Button 
+                          variant="contained" 
+                          startIcon={<Add />}
+                          onClick={async () => {
+                            if (!newTaskTitle.trim() || !selectedLead) return;
+                            const res = await fetch(`/api/admin/leads/${selectedLead.id}/tasks`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                title: newTaskTitle,
+                                description: newTaskDescription,
+                                priority: newTaskPriority,
+                              }),
+                            });
+                            if (res.ok) {
+                              setNewTaskTitle('');
+                              setNewTaskDescription('');
+                              fetchTasks(selectedLead.id);
+                            }
+                          }}
+                        >
+                          Add Task
+                        </Button>
+                      </Box>
+                    </Stack>
+                  </Paper>
+
+                  {/* Task List */}
+                  {loadingTasks ? (
+                    <Typography>Loading tasks...</Typography>
+                  ) : tasks.length > 0 ? (
+                    <Stack spacing={2}>
+                      {tasks.map(task => (
+                        <Paper key={task.id} variant="outlined" sx={{ p: 2, borderLeft: task.priority === 'URGENT' ? '3px solid #f44336' : task.priority === 'HIGH' ? '3px solid #ff9800' : task.priority === 'MEDIUM' ? '3px solid #2196f3' : '3px solid #9e9e9e' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <Box>
+                              <Typography variant="subtitle1" fontWeight="bold">{task.title}</Typography>
+                              {task.description && <Typography variant="body2" color="text.secondary">{task.description}</Typography>}
+                              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                                <Chip label={task.status} size="small" color={task.status === 'COMPLETED' ? 'success' : task.status === 'IN_PROGRESS' ? 'info' : 'default'} />
+                                <Chip label={task.priority} size="small" color={task.priority === 'URGENT' ? 'error' : task.priority === 'HIGH' ? 'warning' : 'default'} />
+                                {task.dueDate && <Typography variant="caption" sx={{ alignSelf: 'center' }}>Due: {new Date(task.dueDate).toLocaleDateString()}</Typography>}
+                              </Stack>
+                            </Box>
+                            <Stack direction="row" spacing={1}>
+                              {task.status !== 'COMPLETED' && (
+                                <IconButton size="small" onClick={async () => {
+                                  await fetch(`/api/admin/leads/${selectedLead.id}/tasks`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ taskId: task.id, status: 'COMPLETED' }),
+                                  });
+                                  fetchTasks(selectedLead.id);
+                                }}>
+                                  <CheckCircle />
+                                </IconButton>
+                              )}
+                              <IconButton size="small" color="error" onClick={async () => {
+                                await fetch(`/api/admin/leads/${selectedLead.id}/tasks?taskId=${task.id}`, { method: 'DELETE' });
+                                fetchTasks(selectedLead.id);
+                              }}>
+                                <Delete />
+                              </IconButton>
+                            </Stack>
+                          </Box>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Alert severity="info">No tasks yet. Create one above!</Alert>
+                  )}
+                </Box>
+              )}
+
+              {/* Tab 7: Notes */}
+              {leadTab === 7 && selectedLead && (
+                <Box>
+                  <Typography variant="h6" gutterBottom sx={{ color: '#8b5cf6' }}>Internal Notes</Typography>
+                  
+                  {/* Add New Note */}
+                  <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+                    <TextField
+                      label="Add a note..."
+                      value={newNoteContent}
+                      onChange={(e) => setNewNoteContent(e.target.value)}
+                      fullWidth
+                      multiline
+                      rows={3}
+                      sx={{ mb: 2 }}
+                    />
+                    <Button 
+                      variant="contained" 
+                      startIcon={<Note />}
+                      onClick={async () => {
+                        if (!newNoteContent.trim() || !selectedLead) return;
+                        const res = await fetch(`/api/admin/leads/${selectedLead.id}/notes`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ content: newNoteContent }),
+                        });
+                        if (res.ok) {
+                          setNewNoteContent('');
+                          fetchNotes(selectedLead.id);
+                        }
+                      }}
+                    >
+                      Add Note
+                    </Button>
+                  </Paper>
+
+                  {/* Notes List */}
+                  {loadingNotes ? (
+                    <Typography>Loading notes...</Typography>
+                  ) : notes.length > 0 ? (
+                    <Stack spacing={2}>
+                      {notes.map(note => (
+                        <Paper key={note.id} variant="outlined" sx={{ p: 2, bgcolor: 'rgba(139, 92, 246, 0.05)' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <Box>
+                              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{note.content}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {note.createdBy} • {new Date(note.createdAt).toLocaleString()}
+                              </Typography>
+                            </Box>
+                            <IconButton size="small" color="error" onClick={async () => {
+                              await fetch(`/api/admin/leads/${selectedLead.id}/notes?noteId=${note.id}`, { method: 'DELETE' });
+                              fetchNotes(selectedLead.id);
+                            }}>
+                              <Delete />
+                            </IconButton>
+                          </Box>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Alert severity="info">No internal notes yet. Add one above!</Alert>
+                  )}
+                </Box>
+              )}
+
+              {/* Tab 8: Activity */}
+              {leadTab === 8 && selectedLead && (
+                <Box>
+                  <Typography variant="h6" gutterBottom sx={{ color: '#8b5cf6' }}>Activity Log</Typography>
+                  
+                  {loadingActivity ? (
+                    <Typography>Loading activity...</Typography>
+                  ) : activityLogs.length > 0 ? (
+                    <Stack spacing={1}>
+                      {activityLogs.map(log => (
+                        <Paper key={log.id} variant="outlined" sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                          <Box sx={{ 
+                            width: 32, height: 32, borderRadius: '50%', 
+                            bgcolor: log.type.includes('COMPLETED') || log.type.includes('SIGNED') || log.type.includes('RECEIVED') ? 'rgba(16, 185, 129, 0.2)' : 'rgba(139, 92, 246, 0.2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: log.type.includes('COMPLETED') || log.type.includes('SIGNED') || log.type.includes('RECEIVED') ? '#10b981' : '#8b5cf6'
+                          }}>
+                            {log.type.includes('TASK') ? <CheckBox fontSize="small" /> :
+                             log.type.includes('NOTE') ? <Note fontSize="small" /> :
+                             log.type.includes('SERVICE') ? <Settings fontSize="small" /> :
+                             log.type.includes('CONTRACT') ? <Description fontSize="small" /> :
+                             log.type.includes('PAYMENT') ? <AttachMoney fontSize="small" /> :
+                             <History fontSize="small" />}
+                          </Box>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="body2">{log.description}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {log.actor || 'System'} • {new Date(log.createdAt).toLocaleString()}
+                            </Typography>
+                          </Box>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Alert severity="info">No activity recorded yet.</Alert>
+                  )}
+                  
+                  <Box sx={{ mt: 2 }}>
+                    <Button 
+                      variant="outlined" 
+                      startIcon={<Refresh />}
+                      onClick={() => selectedLead && fetchActivity(selectedLead.id)}
+                      sx={{ borderColor: glassTheme.cardBorder, color: glassTheme.textPrimary }}
+                    >
+                      Refresh
+                    </Button>
                   </Box>
                 </Box>
               )}
