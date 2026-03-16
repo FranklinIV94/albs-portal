@@ -50,12 +50,14 @@ export async function PUT(request: NextRequest) {
         if (!existingCustomService) {
           // Extract custom name and price from the payload or use defaults
           const customPrice = customPrices?.[customId] || 0;
+          const priceDollars = customPrice / 100;
           await prisma.service.create({
             data: {
               id: customId,
               name: `Custom Service #${customId.slice(-6)}`,
               description: 'Custom service tailored to client',
               basePrice: customPrice,
+              priceDisplay: `$${priceDollars.toFixed(2)}`,
               category: 'CONSULTING',
               icon: '🎯',
               isActive: true,
