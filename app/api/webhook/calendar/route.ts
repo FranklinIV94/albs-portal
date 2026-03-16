@@ -65,9 +65,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('Webhook error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: err.message || 'Unknown error' }, { status: 500 })
   }
 }
 
