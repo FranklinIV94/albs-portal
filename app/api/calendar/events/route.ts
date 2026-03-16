@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { createOutlookEvent, deleteOutlookEvent } from '@/lib/graph';
 
 const prisma = new PrismaClient();
 
@@ -67,6 +68,27 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Create event in Franklin's Outlook calendar
+    let outlookEventId: string | null = null;
+    try {
+      const outlookResult = await createOutlookEvent({
+        subject: title,
+        body: description || undefined,
+        start: new Date(start),
+        end: new Date(end),
+        attendeeEmail: attendeeEmail || (attendees ? JSON.parse(attendees)[0] : undefined),
+        location: location || 'Virtual',
+      });
+      
+      if (outlookResult.success) {
+        outlookEventId = outlookResult.eventId || null;
+        console.log('Created Outlook event:', outlookEventId);
+      }
+    } catch (outlookError: any) {
+      console.error('Outlook sync failed (non-fatal):', outlookError.message);
+      // Continue - don't fail the booking if Outlook fails
+    }
+
     return NextResponse.json({
       success: true,
       event: {
@@ -76,6 +98,7 @@ export async function POST(request: NextRequest) {
         end: event.endTime.toISOString(),
         type: event.eventType,
         status: event.status,
+        outlookEventId,
       },
     });
   } catch (error: any) {
@@ -89,9 +112,26 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    const outlookEventId = searchParams.get('outlookEventId');
 
     if (!id) {
       return NextResponse.json({ error: 'Event ID is required' }, { status: 400 });
+    }
+
+    // Get the event first to check for Outlook ID
+    const existingEvent = await prisma.calendarEvent.findUnique({
+      where: { id },
+    });
+
+    // Delete from Outlook if we have the event ID
+    const outlookId = outlookEventId || (existingEvent as any)?.outlookEventId;
+    if (outlookId) {
+      try {
+        await deleteOutlookEvent(outlookId);
+        console.log('Deleted Outlook event:', outlookId);
+      } catch (outlookError: any) {
+        console.error('Outlook delete failed (non-fatal):', outlookError.message);
+      }
     }
 
     await prisma.calendarEvent.delete({

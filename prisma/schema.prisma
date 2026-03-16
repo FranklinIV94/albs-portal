@@ -420,19 +420,20 @@ enum ActivityType {
 
 // Calendar events for bookings
 model CalendarEvent {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  startTime   DateTime
-  endTime     DateTime
-  eventType   String   @default("consultation")
-  status      String   @default("pending")
-  location    String?
-  attendees   String?  // JSON string of attendee emails
-  leadId      String?  // Optional link to a lead
-  lead        Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  createdBy   String   @default("portal")
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  startTime     DateTime
+  endTime       DateTime
+  eventType     String   @default("consultation")
+  status        String   @default("pending")
+  location      String?
+  attendees     String?  // JSON string of attendee emails
+  leadId        String?  // Optional link to a lead
+  lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  createdBy     String   @default("portal")
+  outlookEventId String? // Microsoft Graph calendar event ID for sync
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

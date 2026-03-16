@@ -37,3 +37,4 @@ prisma/migrations/
 .env.vercel
 .env.local
 *.log
+.env
