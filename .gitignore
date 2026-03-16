@@ -33,3 +33,7 @@ prisma/migrations/
 
 # Vercel
 .vercel
+.env.production
+.env.vercel
+.env.local
+*.log

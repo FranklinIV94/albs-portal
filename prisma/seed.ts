@@ -1,0 +1,303 @@
+// prisma/seed.ts - Seed ALBS Services (Updated March 2026)
+import { PrismaClient, ServiceCategory } from '@prisma/client'
+
+const prisma = new PrismaClient()
+
+async function main() {
+  console.log('🌱 Seeding ALBS Services...')
+
+  // Delete related records first, then services
+  await prisma.leadService.deleteMany({})
+  await prisma.service.deleteMany({})
+  console.log('Cleared existing services and lead services')
+
+  const services = [
+    // AI Services
+    {
+      id: 'ai-tools-assessment',
+      name: 'AI Tools Assessment',
+      category: 'AI_SERVICES' as ServiceCategory,
+      description: 'Comprehensive 45-minute discovery call to evaluate your current tech stack, followed by a custom AI readiness report with actionable recommendations and a 30-minute walkthrough session.',
+      priceDisplay: '$999',
+      basePrice: 99900,
+      icon: '🤖',
+      sortOrder: 1,
+    },
+    {
+      id: 'process-redesign',
+      name: 'Process Redesign',
+      category: 'AI_SERVICES' as ServiceCategory,
+      description: 'End-to-end workflow analysis: we map your current processes, identify bottlenecks and inefficiencies, design an optimized future state, and deliver an implementation roadmap.',
+      priceDisplay: '$3,000-5,000',
+      basePrice: 300000,
+      icon: '📊',
+      sortOrder: 2,
+    },
+    {
+      id: 'automation-build',
+      name: 'Automation Build',
+      category: 'AI_SERVICES' as ServiceCategory,
+      description: 'Custom Zapier/Make.com integrations connecting your existing tools — CRM, email, scheduling, invoicing — into seamless automated workflows that save hours weekly.',
+      priceDisplay: '$1,000-3,000',
+      basePrice: 100000,
+      icon: '⚡',
+      sortOrder: 3,
+    },
+    {
+      id: 'knowledge-systems',
+      name: 'Knowledge Systems',
+      category: 'AI_SERVICES' as ServiceCategory,
+      description: 'Custom-trained AI assistant built on your company\'s data — SOPs, policies, client FAQs — giving your team instant access to institutional knowledge 24/7.',
+      priceDisplay: '$3,000+',
+      basePrice: 300000,
+      icon: '🧠',
+      sortOrder: 4,
+    },
+    {
+      id: 'custom-workflows',
+      name: 'Custom Workflows',
+      category: 'AI_SERVICES' as ServiceCategory,
+      description: 'Tailored AI prompt libraries, templates, and workflow automations designed specifically for your industry and business processes.',
+      priceDisplay: '$3,000-5,000',
+      basePrice: 300000,
+      icon: '🔧',
+      sortOrder: 5,
+    },
+    {
+      id: 'full-implementation',
+      name: 'Full Implementation',
+      category: 'AI_SERVICES' as ServiceCategory,
+      description: 'Complete AI transformation: custom agents managing entire workflows from lead intake to client delivery, with ongoing optimization and support.',
+      priceDisplay: '$5,000-10,000+',
+      basePrice: 500000,
+      icon: '🚀',
+      sortOrder: 6,
+    },
+    // Tax & Business Services
+    {
+      id: '1040-individual',
+      name: '1040 Tax Return (with Schedule C/E)',
+      category: 'TAX_BUSINESS' as ServiceCategory,
+      description: 'Individual tax return with Schedule C (self-employment) or Schedule E (rental income). Starting price covers standard 1040 with one schedule. Additional schedules may incur extra fees.',
+      priceDisplay: '$695',
+      basePrice: 59500,
+      icon: '📄',
+      sortOrder: 7,
+    },
+    {
+      id: '1065-partnerships',
+      name: '1065 Partnerships',
+      category: 'TAX_BUSINESS' as ServiceCategory,
+      description: 'Partnership tax return (Form 1065) including Schedule K-1 preparation, partnership agreement compliance, and multi-member allocation reporting.',
+      priceDisplay: '$695',
+      basePrice: 69500,
+      icon: '🤝',
+      sortOrder: 8,
+    },
+    {
+      id: '1120-s-+-bookkeeping',
+      name: '1120-S + Bookkeeping',
+      category: 'TAX_BUSINESS' as ServiceCategory,
+      description: 'Complete S-Corporation tax preparation (Form 1120-S) paired with year-round monthly bookkeeping, reconciliation, and financial reporting for small businesses.',
+      priceDisplay: '$999',
+      basePrice: 99900,
+      icon: '📋',
+      sortOrder: 9,
+    },
+    {
+      id: '1120-(c-corporation)',
+      name: '1120 (C-Corporation)',
+      category: 'TAX_BUSINESS' as ServiceCategory,
+      description: 'Full C-Corporation tax return filing (Form 1120) including all supporting schedules, K-1 preparation, estimated tax planning, and multi-state filing coordination.',
+      priceDisplay: '$1,595',
+      basePrice: 159500,
+      icon: '🏢',
+      sortOrder: 10,
+    },
+    {
+      id: '1041-(trusts-&-estates)',
+      name: '1041 (Trusts & Estates)',
+      category: 'TAX_BUSINESS' as ServiceCategory,
+      description: 'Trust and estate tax return filing (Form 1041) with complex trust accounting, beneficiary K-1 preparation, fiduciary income allocation, and estate distribution reporting.',
+      priceDisplay: '$1,595',
+      basePrice: 159500,
+      icon: '🏛️',
+      sortOrder: 11,
+    },
+    // PAYROLL SETUP (Keep existing - one-time setup fees)
+    {
+      id: 'payroll-setup-(1-5-employees)',
+      name: 'Payroll Setup (1-5 Employees)',
+      category: 'PAYROLL' as ServiceCategory,
+      description: 'One-time setup: complete payroll system configuration for 1-5 employees/contractors including direct deposit, tax withholding, W-4/I-9 processing.',
+      priceDisplay: '$999',
+      basePrice: 99900,
+      icon: '👥',
+      sortOrder: 10,
+    },
+    {
+      id: 'payroll-setup-(6-19-employees)',
+      name: 'Payroll Setup (6-19 Employees)',
+      category: 'PAYROLL' as ServiceCategory,
+      description: 'One-time setup: full payroll implementation for 6-19 employees/contractors with multi-state tax compliance, benefits deductions, and dedicated support.',
+      priceDisplay: '$1,595',
+      basePrice: 159500,
+      icon: '👥👥',
+      sortOrder: 11,
+    },
+    {
+      id: 'payroll-setup-(20+-employees)',
+      name: 'Payroll Setup (20+ Employees)',
+      category: 'PAYROLL' as ServiceCategory,
+      description: 'One-time setup: enterprise payroll onboarding for 20+ employees with department reporting, custom pay schedules, and compliance auditing.',
+      priceDisplay: '$2,095',
+      basePrice: 209500,
+      icon: '🏢👥',
+      sortOrder: 12,
+    },
+    // TASK 1: PAYROLL & BOOKKEEPING (NEW - Monthly bundles)
+    {
+      id: 'payroll-bookkeeping-1-5',
+      name: 'Payroll & Bookkeeping (1-5 Employees)',
+      category: 'PAYROLL_BOOKKEEPING' as ServiceCategory,
+      description: '⭐ RECOMMENDED - Monthly service: Up to 400 transactions, covers contractors + employees + full bookkeeping. Includes monthly reconciliation, financial reports, payroll processing.',
+      priceDisplay: '$695/mo',
+      basePrice: 69500,
+      icon: '⭐',
+      sortOrder: 13,
+      isActive: true,
+    },
+    {
+      id: 'payroll-bookkeeping-6-19',
+      name: 'Payroll & Bookkeeping (6-19 Employees)',
+      category: 'PAYROLL_BOOKKEEPING' as ServiceCategory,
+      description: 'Monthly service: Any transaction volume, covers contractors + employees + full bookkeeping. Includes monthly reconciliation, financial reports, payroll processing, priority support.',
+      priceDisplay: '$895/mo',
+      basePrice: 89500,
+      icon: '💼',
+      sortOrder: 14,
+      isActive: true,
+    },
+    {
+      id: 'payroll-bookkeeping-20-plus',
+      name: 'Payroll & Bookkeeping (20+ Employees)',
+      category: 'PAYROLL_BOOKKEEPING' as ServiceCategory,
+      description: 'Enterprise monthly service: Unlimited transactions, full bookkeeping + payroll + dedicated account manager. Includes custom reporting, multi-entity support, strategic financial planning.',
+      priceDisplay: '$1,095/mo',
+      basePrice: 109500,
+      icon: '🏢',
+      sortOrder: 15,
+      isActive: true,
+    },
+    {
+      id: 'standalone-bookkeeping',
+      name: 'Standalone Bookkeeping',
+      category: 'BOOKKEEPING' as ServiceCategory,
+      description: 'Monthly bookkeeping only (no payroll). $495 setup fee + $125/hour with timecard tracking. Includes monthly reconciliation, P&L, balance sheet, financial reports.',
+      priceDisplay: '$495 + $125/hr',
+      basePrice: 49500,
+      icon: '📒',
+      sortOrder: 16,
+      isActive: true,
+    },
+    // TASK 2: MARKETING (NEW Category)
+    {
+      id: 'seo-optimization',
+      name: 'SEO Optimization',
+      category: 'MARKETING' as ServiceCategory,
+      description: 'Search engine optimization to improve your website visibility and organic traffic. Includes keyword research, on-page optimization, technical SEO audit.',
+      priceDisplay: 'Contact for pricing',
+      basePrice: 0,
+      icon: '🔍',
+      sortOrder: 17,
+      isActive: true,
+    },
+    {
+      id: 'website-redesign',
+      name: 'Website Redesign',
+      category: 'MARKETING' as ServiceCategory,
+      description: 'Complete website redesign with modern UI/UX. Includes mobile-responsive design, CMS integration, SEO-friendly structure, and analytics setup.',
+      priceDisplay: 'Contact for pricing',
+      basePrice: 0,
+      icon: '🎨',
+      sortOrder: 18,
+      isActive: true,
+    },
+    {
+      id: 'website-deployment',
+      name: 'Website Deployment',
+      category: 'MARKETING' as ServiceCategory,
+      description: 'Professional website deployment and hosting setup. Includes domain configuration, SSL certificate, performance optimization, and ongoing maintenance.',
+      priceDisplay: 'Contact for pricing',
+      basePrice: 0,
+      icon: '🌐',
+      sortOrder: 19,
+      isActive: true,
+    },
+    {
+      id: 'landing-pages',
+      name: 'Landing Pages',
+      category: 'MARKETING' as ServiceCategory,
+      description: 'High-converting landing page design and development. A/B testing optimized, lead capture forms, integration with your CRM and email marketing.',
+      priceDisplay: 'Contact for pricing',
+      basePrice: 0,
+      icon: '🎯',
+      sortOrder: 20,
+      isActive: true,
+    },
+    {
+      id: 'marketing-campaigns',
+      name: 'Marketing Campaigns',
+      category: 'MARKETING' as ServiceCategory,
+      description: 'Full-service digital marketing campaigns. Strategy, creative development, ad spend management, and performance reporting across Google, Facebook, LinkedIn.',
+      priceDisplay: 'Contact for pricing',
+      basePrice: 0,
+      icon: '📢',
+      sortOrder: 21,
+      isActive: true,
+    },
+    {
+      id: 'lead-generation',
+      name: 'Lead Generation',
+      category: 'MARKETING' as ServiceCategory,
+      description: 'Inbound lead generation system. Content marketing, email sequences, lead magnets, CRM integration, and lead scoring to maximize conversion.',
+      priceDisplay: 'Contact for pricing',
+      basePrice: 0,
+      icon: '🎣',
+      sortOrder: 22,
+      isActive: true,
+    },
+  ]
+
+  for (const service of services) {
+    try {
+      await prisma.service.upsert({
+        where: { id: service.id },
+        update: service,
+        create: service,
+      });
+    } catch (e) {
+      console.log(`Error creating service ${service.id}:`, e);
+    }
+  }
+
+  console.log('✅ Seeded 22 services (AI: 6, Tax: 3, Payroll Setup: 3, Payroll & Bookkeeping: 4, Marketing: 6)')
+}
+
+main()
+  .catch((e) => {
+    console.error(e)
+    process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })
+
+main()
+  .catch((e) => {
+    console.error(e)
+    process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })

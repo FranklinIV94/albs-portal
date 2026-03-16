@@ -3,6 +3,7 @@
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { ReactNode } from 'react';
+import AnimatedBackground from '@/components/AnimatedBackground';
 
 const theme = createTheme({
   palette: {
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body>
+        <AnimatedBackground />
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />

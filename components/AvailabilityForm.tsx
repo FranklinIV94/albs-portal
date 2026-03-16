@@ -25,6 +25,12 @@ interface AvailabilityData {
   contactMethod: string;
 }
 
+interface AvailabilityFormProps {
+  initialData?: Partial<AvailabilityData>;
+  onNext: (data: AvailabilityData) => void;
+  onBack?: () => void;
+}
+
 const DAYS = [
   { key: 'monday', label: 'Mon' },
   { key: 'tuesday', label: 'Tue' },
@@ -62,10 +68,12 @@ const NOTICE_PERIODS = [
 
 export default function AvailabilityForm({ 
   initialData,
-  onNext 
+  onNext,
+  onBack
 }: { 
   initialData?: Partial<AvailabilityData>;
   onNext: (data: AvailabilityData) => void;
+  onBack?: () => void;
 }) {
   const [availability, setAvailability] = useState<AvailabilityData>({
     monday: true,
@@ -248,15 +256,25 @@ export default function AvailabilityForm({
         </FormControl>
 
         {/* Submit */}
-        <Button 
-          variant="contained" 
-          size="large" 
-          fullWidth 
-          onClick={handleSubmit}
-          disabled={selectedDaysCount === 0 || selectedTimesCount === 0}
-        >
-          Continue
-        </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+          {onBack && (
+            <Button 
+              variant="outlined" 
+              onClick={onBack}
+            >
+              Back
+            </Button>
+          )}
+          <Button 
+            variant="contained" 
+            size="large" 
+            fullWidth={!onBack}
+            onClick={handleSubmit}
+            disabled={selectedDaysCount === 0 || selectedTimesCount === 0}
+          >
+            Continue
+          </Button>
+        </Box>
       </CardContent>
     </Card>
   );

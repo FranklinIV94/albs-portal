@@ -32,31 +32,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique token if requested
-    const token = generateToken 
-      ? `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`
-      : `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+    // Generate unique token
+    const token = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
+    const leadEmail = enrichedData.email || `pending-${token}@pending.com`;
 
-    // Save to database
-    const lead = await prisma.lead.upsert({
-      where: { 
-        email: enrichedData.email || 'pending-' + Date.now() + '@pending.com' 
-      },
-      update: {
-        firstName: enrichedData.firstName,
-        lastName: enrichedData.lastName,
-        phone: enrichedData.phone,
-        linkedinUrl: enrichedData.linkedinUrl,
-      },
-      create: {
-        token: token,
-        email: enrichedData.email,
-        firstName: enrichedData.firstName,
-        lastName: enrichedData.lastName,
-        phone: enrichedData.phone,
-        linkedinUrl: enrichedData.linkedinUrl,
-      },
-    });
+    // Check if lead exists by email (if provided)
+    const existingLead = enrichedData.email 
+      ? await prisma.lead.findFirst({ where: { email: enrichedData.email } })
+      : null;
+
+    let lead;
+    if (existingLead) {
+      // Update existing lead
+      lead = await prisma.lead.update({
+        where: { id: existingLead.id },
+        data: {
+          firstName: enrichedData.firstName,
+          lastName: enrichedData.lastName,
+          phone: enrichedData.phone,
+          linkedinUrl: enrichedData.linkedinUrl,
+          enrichedData: enrichedData,
+        },
+      });
+    } else {
+      // Create new lead
+      lead = await prisma.lead.create({
+        data: {
+          token,
+          email: leadEmail,
+          firstName: enrichedData.firstName,
+          lastName: enrichedData.lastName,
+          phone: enrichedData.phone,
+          linkedinUrl: enrichedData.linkedinUrl,
+          enrichedData: enrichedData,
+        },
+      });
+    }
 
     // Save work history positions
     if (enrichedData.positions?.length > 0) {
@@ -80,7 +91,7 @@ export async function POST(request: NextRequest) {
     // Fetch the complete lead with positions
     const completeLead = await prisma.lead.findUnique({
       where: { id: lead.id },
-      include: { positions: true },
+      include: { positions: true, availability: true, serviceSelection: true },
     });
 
     return NextResponse.json({
@@ -116,6 +127,7 @@ export async function GET(request: NextRequest) {
       include: { 
         positions: true,
         availability: true,
+        serviceSelection: true,
       },
     });
 

@@ -17,8 +17,9 @@ export async function sendOnboardingEmail({
 }: SendOnboardingEmailParams) {
   try {
     const data = await resend.emails.send({
-      from: 'ALBS <onboarding@simplifyingbusinesses.com>',
+      from: 'ALBS <onboarding@resend.dev>',
       to: [to],
+      reply_to: 'Franklintaxpros@gmail.com',
       subject: 'Complete Your Profile - Invitation',
       html: `
 <!DOCTYPE html>
@@ -103,8 +104,9 @@ export async function sendConfirmationEmail({
 }) {
   try {
     const data = await resend.emails.send({
-      from: 'ALBS <onboarding@simplifyingbusinesses.com>',
+      from: 'ALBS <onboarding@resend.dev>',
       to: [to],
+      reply_to: 'Franklintaxpros@gmail.com',
       subject: 'Profile Complete - Thank You!',
       html: `
 <!DOCTYPE html>

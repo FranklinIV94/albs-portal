@@ -1,4 +1,4 @@
-// prisma/schema.prisma - Complete schema
+// prisma/schema.prisma - ALBS Client Onboarding Portal
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,27 +9,69 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// Lead Model - Main client record
 model Lead {
-  id          String   @id @default(cuid())
-  token       String   @unique
-  email       String?  @unique
-  firstName   String?
-  lastName    String?
-  phone       String?
-  linkedinUrl String?  @unique
+  id           String   @id @default(cuid())
+  token        String   @unique
+  firstName    String?
+  lastName     String?
+  email        String?
+  company      String?
+  title        String?
+  phone        String?
+  linkedinUrl  String?
+  notes        String?  // Client notes from onboarding
+  status       LeadStatus @default(NEW)
+  
+  // Service category filter - which categories client sees on onboarding
+  serviceCategories String?  // Comma-separated: "AI_SERVICES,TAX_BUSINESS,PAYROLL_BOOKKEEPING,MARKETING"
+  
+  // AI Intake fields (when AI services selected)
+  aiLookingFor String?       // "What are you looking to have done?"
+  aiHasAutomation String?   // "Do you have automation in place?"
+  aiAutomationDetails String?
+  aiPainPoints String?      // "What are your pain points?"
+  aiCurrentTools String?    // "What tools are you currently using?"
+  aiAdditionalDetails String? // "Additional details for proposal?"
+  
+  // Enriched data from Apollo (JSON)
+  enrichedData Json?
+  
+  // Onboarding progress tracking
+  onboardingStep     Int       @default(0)   // 0=Welcome, 1=Services, 2=Availability, 3=Terms, 4=Payment, 5=Confirmation
+  onboardingCompleted Boolean  @default(false)
+  
+  // Stripe customer ID for card-on-file billing
+  stripeCustomerId  String?
+  
+  // Timestamps
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  // Enriched Work History
-  positions Position[]
-
-  // Availability
-  availability Availability?
-
-  // Status tracking
-  isOnboarded Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // Relations
+  positions       Position[]
+  availability   Availability?
+  serviceSelection ServiceSelection?
+  leadServices   LeadService[]
+  contracts      Contract[]
+  payments      Payment[]
+  subscriptions Subscription[]
+  projectTimeline ProjectTimeline?
+  clientRequests ClientRequest[]
+  proposals     Proposal[]
 }
 
+enum LeadStatus {
+  NEW
+  ONBOARDING
+  CONTRACT
+  PAYMENT
+  ACTIVE
+  WORK_IN_PROGRESS
+  COMPLETE
+}
+
+// Work History from LinkedIn/Apollo
 model Position {
   id          String  @id @default(cuid())
   leadId      String
@@ -42,7 +84,7 @@ model Position {
   isCurrent   Boolean @default(false)
 }
 
-// Availability Model
+// Availability for scheduling
 model Availability {
   id               String  @id @default(cuid())
   leadId           String  @unique
@@ -62,7 +104,6 @@ model Availability {
   afternoon Boolean @default(true)
   evening   Boolean @default(false)
 
-  // Additional options
   timezone       String  @default("America/New_York")
   isImmediatelyAvailable Boolean @default(false)
   noticePeriod   String?
@@ -70,4 +111,231 @@ model Availability {
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Service Selection (legacy - keeping for backwards compat)
+model ServiceSelection {
+  id          String   @id @default(cuid())
+  leadId      String   @unique
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  // AI Services
+  aiAssessment        Boolean @default(false)
+  processRedesign     Boolean @default(false)
+  automationBuild     Boolean @default(false)
+  knowledgeSystems    Boolean @default(false)
+  customWorkflows     Boolean @default(false)
+  fullImplementation  Boolean @default(false)
+
+  // Tax Services (Business/Entity)
+  taxPreparation      Boolean @default(false)
+  taxPreparation1120  Boolean @default(false)
+  taxPreparation1041  Boolean @default(false)
+  payroll15           Boolean @default(false)
+  payroll619          Boolean @default(false)
+  payroll20plus       Boolean @default(false)
+
+  notes         String?
+  status        String  @default("pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Service Catalog
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  category    ServiceCategory
+  description String
+  priceDisplay String  // e.g., "Starting at $999"
+  basePrice   Int      // in cents, e.g., 99900 = $999.00
+  icon        String   // emoji
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  leadServices LeadService[]
+  proposalServices ProposalService[]
+}
+
+enum ServiceCategory {
+  AI_SERVICES
+  TAX_BUSINESS
+  PAYROLL
+  PAYROLL_BOOKKEEPING
+  BOOKKEEPING
+  CONSULTING
+  MARKETING
+}
+
+// Lead-Service junction (for custom pricing)
+model LeadService {
+  id          String   @id @default(cuid())
+  leadId      String
+  serviceId   String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  service     Service  @relation(fields: [serviceId], references: [id])
+  customPrice Int?     // Override service basePrice (in cents)
+  
+  createdAt   DateTime @default(now())
+
+  @@unique([leadId, serviceId])
+}
+
+// Proposal - Admin-created custom proposals for clients
+model Proposal {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  status      ProposalStatus @default(DRAFT)
+  notes       String?  // Admin notes for client (explanation of services)
+  adminNotes  String?  // Internal admin notes (not shown to client)
+  
+  // Pricing override at proposal level
+  discountType  String?  // PERCENT or FLAT
+  discountValue Int?     // Discount amount or percentage
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  services    ProposalService[]
+}
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  COMPLETED
+  LOST
+  DECLINED
+}
+
+// Proposal-Service junction with custom pricing per proposal
+model ProposalService {
+  id            String   @id @default(cuid())
+  proposalId    String
+  proposal      Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  serviceId     String
+  service       Service  @relation(fields: [serviceId], references: [id])
+  
+  // Per-service pricing override
+  customPrice   Int?     // Override service basePrice (in cents)
+  discountType  String?  // PERCENT or FLAT
+  discountValue Int?     // Discount amount or percentage
+  notes         String?  // Admin explanation for this service (shown to client)
+  
+  createdAt     DateTime @default(now())
+
+  @@unique([proposalId, serviceId])
+}
+
+// Contract signing
+model Contract {
+  id             String   @id @default(cuid())
+  leadId         String
+  lead           Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  signedAt       DateTime?
+  signatureName  String?
+  ipAddress      String?
+  contractType   String?  // e.g., "AI Assessment", "Tax Prep"
+  terms          String?  // Contract terms text
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// Payment tracking
+model Payment {
+  id              String   @id @default(cuid())
+  leadId          String
+  lead            Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  stripeSessionId String?
+  stripeSubscriptionId String?  // For recurring subscriptions
+  amount          Int      // in cents
+  status          PaymentStatus @default(PENDING)
+  paymentType     PaymentType @default(ONE_TIME)  // NEW:区分 one-time vs recurring
+  paidAt          DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum PaymentType {
+  ONE_TIME
+  RECURRING
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELED
+}
+
+// Subscription model for recurring billing
+model Subscription {
+  id                  String   @id @default(cuid())
+  leadId              String
+  lead                Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  stripeSubscriptionId String  @unique  // Stripe subscription ID
+  stripeCustomerId    String?
+  status              SubscriptionStatus @default(ACTIVE)
+  interval            BillingInterval @default(MONTHLY)
+  amount              Int      // in cents
+  currency            String   @default("usd")
+  currentPeriodStart  DateTime
+  currentPeriodEnd    DateTime
+  cancelAtPeriodEnd   Boolean  @default(false)
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+  INCOMPLETE
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+// Project timeline with milestones
+model ProjectTimeline {
+  id         String   @id @default(cuid())
+  leadId     String   @unique
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  milestones Json     // Array of {title, description, status, dueDate, completedAt}
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Client requests/messages
+model ClientRequest {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  subject   String
+  message   String
+  status    RequestStatus @default(OPEN)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum RequestStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
 }

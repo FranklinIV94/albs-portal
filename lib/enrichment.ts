@@ -28,13 +28,13 @@ export async function enrichLeadFromLinkedin(linkedinUrl: string) {
       'https://api.apollo.io/api/v1/people/enrich',
       {
         linkedin_url: linkedinUrl,
-        reveal_phone_number: true,
         reveal_email: true,
+        reveal_phone_number: false,
       },
       {
         headers: {
           'Content-Type': 'application/json',
-          'Api-Key': APOLLO_API_KEY,
+          'X-Api-Key': APOLLO_API_KEY,
         },
       }
     );
@@ -76,12 +76,12 @@ export async function enrichLeadByEmail(email: string) {
       'https://api.apollo.io/api/v1/people/enrich',
       {
         email: email,
-        reveal_phone_number: true,
+        
       },
       {
         headers: {
           'Content-Type': 'application/json',
-          'Api-Key': APOLLO_API_KEY,
+          'X-Api-Key': APOLLO_API_KEY,
         },
       }
     );
