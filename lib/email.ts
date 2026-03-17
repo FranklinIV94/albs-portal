@@ -17,9 +17,9 @@ export async function sendOnboardingEmail({
 }: SendOnboardingEmailParams) {
   try {
     const data = await resend.emails.send({
-      from: 'Franklintaxpros@gmail.com',
+      from: 'onboarding@simplifyingbusinesses.com',
       to: [to],
-      reply_to: 'Franklintaxpros@gmail.com',
+      reply_to: 'onboarding@simplifyingbusinesses.com',
       subject: 'Complete Your Profile - Invitation',
       html: `
 <!DOCTYPE html>
@@ -112,9 +112,9 @@ export async function sendBookingConfirmationEmail({
 }: BookingConfirmationParams) {
   try {
     const data = await resend.emails.send({
-      from: 'Franklintaxpros@gmail.com',
+      from: 'onboarding@simplifyingbusinesses.com',
       to: [to],
-      reply_to: 'Franklintaxpros@gmail.com',
+      reply_to: 'onboarding@simplifyingbusinesses.com',
       subject: '📅 Consultation Confirmed - ' + date,
       html: `
 <!DOCTYPE html>
@@ -211,9 +211,9 @@ export async function sendConfirmationEmail({
 }) {
   try {
     const data = await resend.emails.send({
-      from: 'Franklintaxpros@gmail.com',
+      from: 'onboarding@simplifyingbusinesses.com',
       to: [to],
-      reply_to: 'Franklintaxpros@gmail.com',
+      reply_to: 'onboarding@simplifyingbusinesses.com',
       subject: 'Profile Complete - Thank You!',
       html: `
 <!DOCTYPE html>

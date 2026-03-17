@@ -113,8 +113,8 @@ export async function createOutlookEvent(params: {
   };
 
   try {
-    // Create event in Franklin's default calendar
-    const result = await client.api('/me/calendar/events').post(event);
+    // Create event in Franklin's calendar (using app-only auth)
+    const result = await client.api('/users/franklin@simplifyingbusinesses.com/calendar/events').post(event);
     return { success: true, eventId: result.id };
   } catch (error: any) {
     console.error('Failed to create Outlook event:', error);
@@ -129,7 +129,7 @@ export async function deleteOutlookEvent(eventId: string) {
   const client = getGraphClient();
 
   try {
-    await client.api(`/me/calendar/events/${eventId}`).delete();
+    await client.api(`/users/franklin@simplifyingbusinesses.com/calendar/events/${eventId}`).delete();
     return { success: true };
   } catch (error: any) {
     console.error('Failed to delete Outlook event:', error);

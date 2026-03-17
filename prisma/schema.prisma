@@ -176,6 +176,7 @@ enum ServiceCategory {
   BOOKKEEPING
   CONSULTING
   MARKETING
+  INSURANCE
 }
 
 // Lead-Service junction (for custom pricing)

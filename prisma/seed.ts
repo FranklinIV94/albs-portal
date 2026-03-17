@@ -267,6 +267,51 @@ async function main() {
       sortOrder: 22,
       isActive: true,
     },
+    // INSURANCE SERVICES (NEW - March 2026)
+    {
+      id: 'u65-health-enrollment',
+      name: 'Under 65 Health Insurance',
+      category: 'INSURANCE' as ServiceCategory,
+      description: 'FREE - Marketplace health insurance enrollment for individuals and families under 65. We assist with plan selection, enrollment, and ongoing support at no cost (commissions paid by carriers).',
+      priceDisplay: 'FREE',
+      basePrice: 0,
+      icon: '🏥',
+      sortOrder: 23,
+      isActive: true,
+    },
+    {
+      id: 'medicare-enrollment',
+      name: 'Medicare Enrollment',
+      category: 'INSURANCE' as ServiceCategory,
+      description: 'FREE - Medicare Part A, B, C (Advantage), and D enrollment assistance. We help navigate initial enrollment, SEP opportunities, and annual election periods at no cost (commissions paid by carriers).',
+      priceDisplay: 'FREE',
+      basePrice: 0,
+      icon: '👵',
+      sortOrder: 24,
+      isActive: true,
+    },
+    {
+      id: 'insurance-appeal',
+      name: 'Insurance Appeal / Grievance',
+      category: 'INSURANCE' as ServiceCategory,
+      description: '$125/hour - Representation and advocacy for insurance denials, coverage disputes, and appeals. Includes document review, strategy development, and appeal letter preparation.',
+      priceDisplay: '$125/hr',
+      basePrice: 12500,
+      icon: '⚖️',
+      sortOrder: 25,
+      isActive: true,
+    },
+    {
+      id: 'employer-benefits-consultation',
+      name: 'Employer Benefits Consultation',
+      category: 'INSURANCE' as ServiceCategory,
+      description: '$500 booking fee - Strategic consultation for employers on designing and implementing employee benefits packages. Includes health, dental, vision, life, and 401(k) planning.',
+      priceDisplay: '$500',
+      basePrice: 50000,
+      icon: '💼',
+      sortOrder: 26,
+      isActive: true,
+    },
   ]
 
   for (const service of services) {
@@ -281,7 +326,7 @@ async function main() {
     }
   }
 
-  console.log('✅ Seeded 22 services (AI: 6, Tax: 3, Payroll Setup: 3, Payroll & Bookkeeping: 4, Marketing: 6)')
+  console.log(`✅ Seeded ${services.length} services (including 4 new Insurance services)`)
 }
 
 main()
