@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Resend } from 'resend';
+import { PrismaClient } from '@prisma/client';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -39,8 +40,12 @@ export async function POST(req: NextRequest) {
     const lastName = nameParts.slice(1).join(' ') || '';
 
     // 2. Create lead in portal database
+    // Generate a secure random token for onboarding
+    const token = crypto.randomUUID();
+
     const lead = await prisma.lead.create({
       data: {
+        token,
         firstName,
         lastName,
         email: client?.email || '',
@@ -50,8 +55,6 @@ export async function POST(req: NextRequest) {
         onboardingCompleted: false,
         onboardingStep: 0,
         notes: client?.notes || `Intake submitted: ${timestamp}\nServices: ${(client?.services || []).join(', ')}`,
-        // Store raw intake services for reference
-        // serviceCategories can be extended later
       }
     });
 

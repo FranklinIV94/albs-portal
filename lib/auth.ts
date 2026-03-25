@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 export function validateApiKey(request: NextRequest): { valid: boolean; error?: string } {
   const apiKey = request.headers.get('x-api-key');
   
-  // Get key from env or use default for development
-  const validKey = process.env.PORTAL_API_KEY || 'albs-portal-dev-key-2026';
+  // Get key from env - check ZO key first, then fallback to generic
+  const validKey = process.env.PORTAL_API_KEY_ZO || process.env.PORTAL_API_KEY || 'albs-portal-dev-key-2026';
   
   // If no key provided
   if (!apiKey) {
