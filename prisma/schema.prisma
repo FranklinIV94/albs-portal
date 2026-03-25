@@ -66,6 +66,8 @@ model Lead {
   adminNotes         Note[]
   activityLogs  ActivityLog[]
   calendarEvents CalendarEvent[]
+  escalations    Escalation[]
+  invoices      Invoice[]
 }
 
 enum LeadStatus {
@@ -437,4 +439,110 @@ model CalendarEvent {
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// Escalations for Zo AI agent
+model Escalation {
+  id            String   @id @default(cuid())
+  alertId       String   @unique // e.g., ESC-2026-XXXXX
+  
+  // Client info (can be null for unknown callers)
+  clientName    String?
+  clientPhone   String?
+  clientEmail   String?
+  leadId        String?  // Optional link to existing lead
+  lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  
+  // Escalation details
+  priority      EscalationPriority @default(STANDARD)
+  reason        EscalationReason
+  summary       String
+  conversationHistory String? // JSON array of messages
+  metadata      String?   // Additional JSON data
+  
+  // Assignment
+  assignedTo    String?   // e.g., "NADESHA" or "FRANKLIN"
+  status        EscalationStatus @default(OPEN)
+  
+  // Resolution
+  resolvedAt    DateTime?
+  resolution    String?
+  
+  // Source
+  source        String    @default("ZO_BOT") // Which bot/system created it
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum EscalationPriority {
+  STANDARD
+  HIGH
+  URGENT
+}
+
+enum EscalationReason {
+  PRICING
+  BILLING
+  CANCELLATION
+  COMPLAINT
+  CLAIM
+  COMPLEX
+  NEW_LEAD
+  OTHER
+}
+
+enum EscalationStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+// Standalone invoices for manual billing (not through Stripe)
+model Invoice {
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique // e.g., INV-2026-XXXX
+  
+  // Client info
+  clientName    String
+  clientEmail   String?
+  clientPhone   String?
+  leadId        String?  // Optional link to existing lead
+  lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  
+  // Line items stored as JSON
+  lineItems     Json     // [{description, quantity, unitPrice, total}]
+  
+  // Totals
+  subtotal     Int       // in cents
+  taxRate      Int       @default(0) // percentage * 100 (e.g., 725 = 7.25%)
+  taxAmount    Int       @default(0) // in cents
+  total        Int       // in cents
+  
+  // Status
+  status       InvoiceStatus @default(DRAFT)
+  
+  // Stripe integration (optional)
+  stripeInvoiceId String?
+  stripeSessionId String?
+  
+  // Dates
+  issueDate    DateTime @default(now())
+  dueDate      DateTime?
+  paidAt       DateTime?
+  
+  // Notes
+  notes        String?   // Internal notes
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELED
 }
