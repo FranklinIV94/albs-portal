@@ -33,14 +33,42 @@ export async function GET(request: NextRequest) {
       orderBy: { paidAt: 'desc' },
     });
 
-    // Calculate revenue (amounts stored in cents, convert to dollars)
-    const monthRevenue = Math.round(payments
-      .filter(p => p.paidAt && new Date(p.paidAt) >= startOfMonth)
-      .reduce((sum, p) => sum + p.amount, 0) / 100);
+    // Also get PAID invoices (for revenue from invoices that may not have Payment records)
+    const paidInvoices = await prisma.invoice.findMany({
+      where: { status: 'PAID' },
+      select: {
+        id: true,
+        total: true,
+        paidAt: true,
+        lead: {
+          select: {
+            firstName: true,
+            lastName: true,
+            company: true,
+          }
+        }
+      },
+      orderBy: { paidAt: 'desc' },
+    });
 
-    const yearRevenue = Math.round(payments
-      .filter(p => p.paidAt && new Date(p.paidAt) >= startOfYear)
-      .reduce((sum, p) => sum + p.amount, 0) / 100);
+    // Combine payment and invoice data for revenue calculation
+    const allPaidRecords = [
+      ...payments.map(p => ({ id: p.id, amount: p.amount, paidAt: p.paidAt, source: 'payment', lead: p.lead })),
+      ...paidInvoices.map(i => ({ id: i.id, amount: i.total, paidAt: i.paidAt, source: 'invoice', lead: i.lead })),
+    ].filter(r => r.paidAt);
+
+    // Calculate revenue from combined data (amounts stored in cents, convert to dollars)
+    const monthRevenue = Math.round(
+      allPaidRecords
+        .filter(r => r.paidAt && new Date(r.paidAt) >= startOfMonth)
+        .reduce((sum, r) => sum + r.amount, 0) / 100
+    );
+
+    const yearRevenue = Math.round(
+      allPaidRecords
+        .filter(r => r.paidAt && new Date(r.paidAt) >= startOfYear)
+        .reduce((sum, r) => sum + r.amount, 0) / 100
+    );
 
     // Get active clients count
     const activeClients = await prisma.lead.count({
@@ -53,13 +81,14 @@ export async function GET(request: NextRequest) {
       _count: { status: true },
     });
 
-    // Get recent payments (last 10)
-    const recentPayments = payments.slice(0, 10).map(p => ({
+    // Get recent payments (last 10, combined from payments and invoices)
+    const recentPayments = allPaidRecords.slice(0, 10).map(p => ({
       id: p.id,
       amount: p.amount,
       paidAt: p.paidAt,
       leadName: p.lead ? `${p.lead.firstName} ${p.lead.lastName}` : 'Unknown',
       company: p.lead?.company || '',
+      source: p.source,
     }));
 
     // Get monthly revenue for the last 6 months (for chart)
@@ -91,8 +120,8 @@ export async function GET(request: NextRequest) {
         id: p.id,
         amount: Math.round(p.amount / 100), // Convert cents to dollars
         status: p.status,
-        created: p.created ? new Date(p.created * 1000).toISOString() : null, // Convert Unix timestamp to ISO string
-        arrivalDate: p.arrival_date ? new Date(p.arrival_date * 1000).toISOString() : null,
+        created: p.created, // Return Unix timestamp in seconds (Stripe default)
+        arrivalDate: p.arrival_date || null, // Unix timestamp or null
       }));
     } catch (stripeError: any) {
       console.log('Stripe payouts not available:', stripeError.message);

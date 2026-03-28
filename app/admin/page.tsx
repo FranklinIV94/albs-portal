@@ -84,14 +84,18 @@ const CATEGORIES: Record<string, string> = {
 // Glass morphism theme
 const glassTheme = {
   background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%)',
-  cardBg: 'rgba(255,255,255,0.08)',
-  cardBorder: 'rgba(255,255,255,0.15)',
-  cardGlow: '0 8px 32px rgba(0,0,0,0.3)',
+  cardBg: 'rgba(15,23,42,0.92)',
+  cardBorder: 'rgba(99,102,241,0.3)',
+  cardGlow: '0 8px 32px rgba(0,0,0,0.4)',
   textPrimary: '#f0f0f8',
-  textSecondary: 'rgba(240,240,248,0.7)',
+  textSecondary: 'rgba(240,240,248,0.75)',
   accentGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
   successGradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
   warningGradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+  tableBg: 'rgba(10,18,40,0.95)',
+  tableHeaderBg: 'rgba(30,41,100,0.9)',
+  tableRowHover: 'rgba(99,102,241,0.12)',
+  tableRowBorder: 'rgba(99,102,241,0.15)',
 };
 
 // Dark theme overrides for MUI components
@@ -304,6 +308,17 @@ function AdminDashboardContent() {
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [loadingActivity, setLoadingActivity] = useState(false);
   
+  // Invoice state
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [allInvoices, setAllInvoices] = useState<any[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [invoiceLineItems, setInvoiceLineItems] = useState<any[]>([{ description: '', quantity: 1, unitPrice: 0 }]);
+  const [invoiceTaxRate, setInvoiceTaxRate] = useState(0);
+  const [invoiceNotes, setInvoiceNotes] = useState('');
+  const [invoiceDueDays, setInvoiceDueDays] = useState(30);
+  const [savingInvoice, setSavingInvoice] = useState(false);
+
   // New task/note form state
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
@@ -401,6 +416,12 @@ function AdminDashboardContent() {
     }
   }, [chatLeadId, leads]);
 
+  useEffect(() => {
+    if (tab === 3) {
+      fetchAllInvoices();
+    }
+  }, [tab]);
+
   const checkAuth = async () => {
     try {
       const res = await fetch('/api/auth');
@@ -445,6 +466,32 @@ function AdminDashboardContent() {
       console.error('Failed to fetch subscriptions:', err);
     } finally {
       setLoadingSubscriptions(false);
+    }
+  };
+
+  const fetchInvoices = async (leadId: string) => {
+    setLoadingInvoices(true);
+    try {
+      const res = await fetch(`/api/invoices?leadId=${leadId}`);
+      const data = await res.json();
+      setInvoices(data.invoices || []);
+    } catch (err) {
+      console.error('Failed to fetch invoices:', err);
+    } finally {
+      setLoadingInvoices(false);
+    }
+  };
+
+  const fetchAllInvoices = async () => {
+    setLoadingInvoices(true);
+    try {
+      const res = await fetch('/api/invoices?limit=100');
+      const data = await res.json();
+      setAllInvoices(data.invoices || []);
+    } catch (err) {
+      console.error('Failed to fetch all invoices:', err);
+    } finally {
+      setLoadingInvoices(false);
     }
   };
 
@@ -777,7 +824,7 @@ function AdminDashboardContent() {
         background: glassTheme.cardBg,
         border: `1px solid ${glassTheme.cardBorder}`,
         boxShadow: glassTheme.cardGlow,
-        backdropFilter: 'blur(10px)',
+        backdropFilter: 'none',
       }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Box>
@@ -792,15 +839,17 @@ function AdminDashboardContent() {
               Manage clients, services, and billing
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <Button 
               variant="outlined"
               startIcon={<Settings />}
               onClick={() => setServicesTabOpen(true)}
+              size="small"
               sx={{ 
                 borderColor: glassTheme.cardBorder, 
                 color: glassTheme.textPrimary,
-                '&:hover': { borderColor: '#6366f1', bgcolor: 'rgba(99,102,241,0.1)' }
+                '&:hover': { borderColor: '#6366f1', bgcolor: 'rgba(99,102,241,0.1)' },
+                borderRadius: 2,
               }}
             >
               Manage Services
@@ -809,10 +858,10 @@ function AdminDashboardContent() {
               variant="contained" 
               startIcon={<PersonAdd />} 
               onClick={() => setDialogOpen(true)}
+              size="small"
               sx={{ 
                 background: glassTheme.accentGradient,
                 fontWeight: 'bold',
-                px: 3,
                 borderRadius: 2,
                 boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
                 '&:hover': { boxShadow: '0 6px 20px rgba(99,102,241,0.5)' },
@@ -824,11 +873,12 @@ function AdminDashboardContent() {
               variant="outlined" 
               startIcon={<CheckCircle />}
               onClick={() => setPrepaidDialogOpen(true)}
+              size="small"
               sx={{ 
                 borderColor: '#10b981',
                 color: '#10b981',
-                px: 3,
                 borderRadius: 2,
+                '&:hover': { bgcolor: 'rgba(16,185,129,0.1)' },
               }}
             >
               Pre-Paid Client
@@ -839,14 +889,10 @@ function AdminDashboardContent() {
 
       {/* Status Summary with glass morphism */}
       <Box sx={{ 
-        display: 'flex', 
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
         gap: 2, 
         mb: 4, 
-        flexWrap: 'wrap',
-        '& > *': {
-          flex: '1 1 auto',
-          minWidth: 100,
-        }
       }}>
         {STATUSES.map((status, idx) => (
           <Box key={status} sx={{
@@ -855,7 +901,7 @@ function AdminDashboardContent() {
             background: glassTheme.cardBg,
             border: `1px solid ${glassTheme.cardBorder}`,
             boxShadow: glassTheme.cardGlow,
-            backdropFilter: 'blur(10px)',
+            backdropFilter: 'none',
             textAlign: 'center',
           }}>
             <Typography variant="h4" fontWeight="bold" sx={{ 
@@ -884,13 +930,106 @@ function AdminDashboardContent() {
         >
           <Tab label={`All Leads (${leads.length})`} />
           <Tab label="AI Services" />
-          <Tab label="Tax & Payroll" />
+          <Tab label="Payroll" />
+          <Tab label="📋 All Invoices" />
           {analytics && <Tab label="📊 Analytics" />}
         </Tabs>
       </Box>
 
-      {/* Conditionally show Analytics or Lead Table */}
-      {tab >= 3 && analytics ? (
+      {/* All Invoices Tab (tab === 3) */}
+      {tab === 3 && (
+        <Box sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h5" sx={{ color: glassTheme.textPrimary }}>
+              📋 All Issued Invoices
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<Refresh />}
+              onClick={fetchAllInvoices}
+              size="small"
+            >
+              Refresh
+            </Button>
+          </Box>
+
+          {loadingInvoices ? (
+            <Typography sx={{ color: glassTheme.textSecondary }}>Loading invoices...</Typography>
+          ) : allInvoices.length > 0 ? (
+            <TableContainer component={Paper} sx={{ bgcolor: glassTheme.tableBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2 }}>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ bgcolor: glassTheme.tableHeaderBg }}>
+                    <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Invoice #</TableCell>
+                    <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Client</TableCell>
+                    <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Amount</TableCell>
+                    <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Status</TableCell>
+                    <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Issued</TableCell>
+                    <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Due</TableCell>
+                    <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {allInvoices.map((inv: any) => (
+                    <TableRow key={inv.id} sx={{ '&:hover': { bgcolor: glassTheme.tableRowHover }, borderBottom: `1px solid ${glassTheme.tableRowBorder}` }}>
+                      <TableCell sx={{ color: glassTheme.textPrimary }}>{inv.invoiceNumber}</TableCell>
+                      <TableCell sx={{ color: glassTheme.textPrimary }}>
+                        <Typography variant="body2" fontWeight={500}>{inv.clientName}</Typography>
+                        {inv.lead?.company && <Typography variant="caption" sx={{ color: glassTheme.textSecondary }}>{inv.lead.company}</Typography>}
+                      </TableCell>
+                      <TableCell sx={{ color: '#10b981', fontWeight: 600 }}>${(inv.total / 100).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={inv.status} 
+                          size="small" 
+                          color={inv.status === 'PAID' ? 'success' : inv.status === 'OVERDUE' ? 'error' : 'warning'} 
+                        />
+                      </TableCell>
+                      <TableCell sx={{ color: glassTheme.textSecondary }}>{new Date(inv.issueDate).toLocaleDateString()}</TableCell>
+                      <TableCell sx={{ color: glassTheme.textSecondary }}>{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : '-'}</TableCell>
+                      <TableCell>
+                        {inv.status !== 'PAID' && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={async () => {
+                              try {
+                                const res = await fetch('/api/invoices/checkout', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ invoiceId: inv.id, sendEmail: true }),
+                                });
+                                const data = await res.json();
+                                if (data.paymentUrl) {
+                                  window.open(data.paymentUrl, '_blank');
+                                  navigator.clipboard.writeText(data.paymentUrl);
+                                  alert('Payment link sent!');
+                                }
+                              } catch (err) {
+                                console.error('Checkout error:', err);
+                              }
+                            }}
+                            sx={{ fontSize: '11px', py: 0.3 }}
+                          >
+                            Send Link
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Paper sx={{ p: 4, textAlign: 'center', bgcolor: glassTheme.cardBg, border: `1px solid ${glassTheme.cardBorder}` }}>
+              <Typography sx={{ color: glassTheme.textSecondary }}>No invoices issued yet.</Typography>
+            </Paper>
+          )}
+        </Box>
+      )}
+
+      {/* Analytics Tab (tab >= 4) */}
+      {tab >= 4 && analytics ? (
         <Box sx={{ p: 3 }}>
           <Typography variant="h5" sx={{ color: glassTheme.textPrimary, mb: 3 }}>
             📊 Analytics Dashboard
@@ -908,7 +1047,6 @@ function AdminDashboardContent() {
               <Paper sx={{ p: 3, bgcolor: glassTheme.cardBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2 }}>
                 <Typography variant="subtitle2" sx={{ color: glassTheme.textSecondary }}>Avg per Client</Typography>
                 <Typography variant="h4" sx={{ color: '#6366f1' }}>${analytics?.activeClients ? Math.round(analytics.revenue?.thisMonth / analytics.activeClients / 100) : 0}</Typography>
-                <Typography variant="caption" sx={{ color: glassTheme.textSecondary }}>Target: $20,000</Typography>
               </Paper>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
@@ -921,20 +1059,19 @@ function AdminDashboardContent() {
               <Paper sx={{ p: 3, bgcolor: glassTheme.cardBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2 }}>
                 <Typography variant="subtitle2" sx={{ color: glassTheme.textSecondary }}>Target</Typography>
                 <Typography variant="h4" sx={{ color: '#ec4899' }}>$35K</Typography>
-                <Typography variant="caption" sx={{ color: glassTheme.textSecondary }}>Monthly Goal</Typography>
               </Paper>
             </Grid>
           </Grid>
 
           {/* Payouts Section */}
           <Typography variant="h6" sx={{ color: glassTheme.textPrimary, mb: 2 }}>Recent Payouts</Typography>
-          <TableContainer component={Paper} sx={{ bgcolor: glassTheme.cardBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2 }}>
+          <TableContainer component={Paper} sx={{ bgcolor: glassTheme.tableBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2 }}>
             <Table>
               <TableHead>
-                <TableRow sx={{ bgcolor: 'rgba(255,255,255,0.03)' }}>
-                  <TableCell sx={{ color: glassTheme.textPrimary }}>Amount</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary }}>Status</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary }}>Date</TableCell>
+                <TableRow sx={{ bgcolor: glassTheme.tableHeaderBg }}>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Amount</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Status</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Date</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -955,24 +1092,27 @@ function AdminDashboardContent() {
             </Table>
           </TableContainer>
         </Box>
-      ) : (
+      ) : null}
+
+      {/* Lead Table (tabs 0-2) */}
+      {tab <= 2 && (
       <TableContainer component={Paper} sx={{ 
-        bgcolor: glassTheme.cardBg, 
+        bgcolor: glassTheme.tableBg, 
         border: `1px solid ${glassTheme.cardBorder}`,
         borderRadius: 2,
         boxShadow: glassTheme.cardGlow,
-        backdropFilter: 'blur(10px)',
+        backdropFilter: 'none',
       }}>
         <Table>
           <TableHead>
-            <TableRow sx={{ bgcolor: 'rgba(255,255,255,0.03)' }}>
-              <TableCell sx={{ color: glassTheme.textPrimary, borderBottom: `1px solid ${glassTheme.cardBorder}` }}>Name</TableCell>
-              <TableCell sx={{ color: glassTheme.textPrimary, borderBottom: `1px solid ${glassTheme.cardBorder}` }}>Company</TableCell>
-              <TableCell sx={{ color: glassTheme.textPrimary, borderBottom: `1px solid ${glassTheme.cardBorder}` }}>Email</TableCell>
-              <TableCell sx={{ color: glassTheme.textPrimary, borderBottom: `1px solid ${glassTheme.cardBorder}` }}>Services</TableCell>
-              <TableCell sx={{ color: glassTheme.textPrimary, borderBottom: `1px solid ${glassTheme.cardBorder}` }}>Status</TableCell>
-              <TableCell sx={{ color: glassTheme.textPrimary, borderBottom: `1px solid ${glassTheme.cardBorder}` }}>Created</TableCell>
-              <TableCell sx={{ color: glassTheme.textPrimary, borderBottom: `1px solid ${glassTheme.cardBorder}` }}>Actions</TableCell>
+            <TableRow sx={{ bgcolor: glassTheme.tableHeaderBg }}>
+              <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Name</TableCell>
+              <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Company</TableCell>
+              <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Email</TableCell>
+              <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Services</TableCell>
+              <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Status</TableCell>
+              <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Created</TableCell>
+              <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -982,8 +1122,8 @@ function AdminDashboardContent() {
               return true;
             }).map((lead: any) => (
               <TableRow key={lead.id} sx={{ 
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' }, 
-                borderBottom: `1px solid ${glassTheme.cardBorder}`,
+                '&:hover': { bgcolor: glassTheme.tableRowHover }, 
+                borderBottom: `1px solid ${glassTheme.tableRowBorder}`,
                 transition: 'background 0.2s',
               }}>
                 <TableCell sx={{ color: glassTheme.textPrimary }}>{lead.firstName} {lead.lastName}</TableCell>
@@ -1037,7 +1177,7 @@ function AdminDashboardContent() {
           </TableBody>
         </Table>
       </TableContainer>
-      )} {/* End conditional: Analytics or Lead Table */}
+      )}
 
       {/* New Lead Dialog */}
       <Dialog 
@@ -1047,10 +1187,10 @@ function AdminDashboardContent() {
         fullWidth
         PaperProps={{
           sx: { 
-            bgcolor: 'rgba(15,23,42,0.95)', 
+            bgcolor: 'rgba(15,23,42,1)', 
             border: `1px solid ${glassTheme.cardBorder}`, 
             color: glassTheme.textPrimary,
-            backdropFilter: 'blur(20px)',
+            backdropFilter: 'none',
           }
         }}
       >
@@ -1218,10 +1358,10 @@ function AdminDashboardContent() {
         fullWidth
         PaperProps={{
           sx: { 
-            bgcolor: 'rgba(15,23,42,0.95)', 
+            bgcolor: 'rgba(15,23,42,1)', 
             border: `1px solid ${glassTheme.cardBorder}`, 
             color: glassTheme.textPrimary,
-            backdropFilter: 'blur(20px)',
+            backdropFilter: 'none',
           }
         }}
       >
@@ -1350,10 +1490,10 @@ function AdminDashboardContent() {
         fullWidth
         PaperProps={{
           sx: { 
-            bgcolor: 'rgba(15,23,42,0.95)', 
+            bgcolor: 'rgba(15,23,42,1)', 
             border: `1px solid ${glassTheme.cardBorder}`, 
             color: glassTheme.textPrimary,
-            backdropFilter: 'blur(20px)',
+            backdropFilter: 'none',
           }
         }}
       >
@@ -1432,7 +1572,7 @@ function AdminDashboardContent() {
         fullWidth
         PaperProps={{
           sx: { 
-            bgcolor: 'rgba(15,23,42,0.95)', 
+            bgcolor: 'rgba(15,23,42,1)', 
             border: `1px solid ${glassTheme.cardBorder}`, 
             color: glassTheme.textPrimary,
           }
@@ -1474,11 +1614,11 @@ function AdminDashboardContent() {
         fullWidth
         PaperProps={{
           sx: { 
-            bgcolor: 'rgba(15,23,42,0.95)', 
+            bgcolor: 'rgba(15,23,42,1)', 
             border: `1px solid ${glassTheme.cardBorder}`, 
             color: glassTheme.textPrimary, 
             minHeight: '60vh',
-            backdropFilter: 'blur(20px)',
+            backdropFilter: 'none',
           }
         }}
       >
@@ -1494,18 +1634,19 @@ function AdminDashboardContent() {
         <DialogContent>
           {selectedLead && (
             <Stack spacing={2} sx={{ mt: 1 }}>
-              <Tabs 
-                value={leadTab} 
+              <Tabs
+                value={leadTab}
                 onChange={(_, v) => {
                   setLeadTab(v);
                   if (v === 5 && selectedLead) {
                     fetchSubscriptions(selectedLead.id);
+                    fetchInvoices(selectedLead.id); // FIX: also fetch invoices when opening billing tab
                   }
                   // Fetch data for new tabs
                   if (v === 6 && selectedLead) fetchTasks(selectedLead.id);
                   if (v === 7 && selectedLead) fetchNotes(selectedLead.id);
                   if (v === 8 && selectedLead) fetchActivity(selectedLead.id);
-                }} 
+                }}
                 sx={{ mb: 2 }}
               >
                 <Tab label="Info" />
@@ -1717,14 +1858,33 @@ function AdminDashboardContent() {
               )}
 
               {/* Tab 5: Billing */}
-              {leadTab === 5 && (
+              {leadTab === 5 && selectedLead && (
                 <Box>
-                  <Typography variant="h6" gutterBottom sx={{ color: '#8b5cf6' }}>Billing & Subscription</Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Typography variant="h6" sx={{ color: '#8b5cf6' }}>Billing & Invoices</Typography>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={() => {
+                        setInvoiceLineItems([{ description: '', quantity: 1, unitPrice: 0 }]);
+                        setInvoiceTaxRate(0);
+                        setInvoiceNotes('');
+                        setInvoiceDueDays(30);
+                        fetchInvoices(selectedLead.id);
+                        setInvoiceDialogOpen(true);
+                      }}
+                      sx={{ background: glassTheme.accentGradient }}
+                    >
+                      Create Invoice
+                    </Button>
+                  </Box>
                   
+                  {/* Subscriptions */}
+                  <Typography variant="subtitle2" gutterBottom sx={{ color: glassTheme.textSecondary }}>Subscriptions</Typography>
                   {loadingSubscriptions ? (
-                    <Typography>Loading subscription data...</Typography>
+                    <Typography>Loading...</Typography>
                   ) : subscriptions.length > 0 ? (
-                    <Stack spacing={2}>
+                    <Stack spacing={2} sx={{ mb: 4 }}>
                       {subscriptions.map(sub => (
                         <Paper key={sub.id} variant="outlined" sx={{ p: 2 }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
@@ -1743,33 +1903,85 @@ function AdminDashboardContent() {
                           <Typography>
                             <strong>Period:</strong> {new Date(sub.currentPeriodStart).toLocaleDateString()} - {new Date(sub.currentPeriodEnd).toLocaleDateString()}
                           </Typography>
-                          {sub.cancelAtPeriodEnd && (
-                            <Alert severity="warning" sx={{ mt: 1 }}>
-                              Scheduled to cancel at end of billing period
-                            </Alert>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Alert severity="info" sx={{ mb: 4 }}>
+                      No active subscriptions.
+                    </Alert>
+                  )}
+                  
+                  {/* Invoices */}
+                  <Typography variant="subtitle2" gutterBottom sx={{ color: glassTheme.textSecondary }}>Invoices</Typography>
+                  {loadingInvoices ? (
+                    <Typography>Loading...</Typography>
+                  ) : invoices.length > 0 ? (
+                    <Stack spacing={2}>
+                      {invoices.map(inv => (
+                        <Paper key={inv.id} variant="outlined" sx={{ p: 2 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">
+                              {inv.invoiceNumber}
+                            </Typography>
+                            <Chip 
+                              label={inv.status} 
+                              color={inv.status === 'PAID' ? 'success' : inv.status === 'OVERDUE' ? 'error' : 'default'}
+                              size="small" 
+                            />
+                          </Box>
+                          <Typography>
+                            <strong>Total:</strong> ${(inv.total / 100).toFixed(2)}
+                          </Typography>
+                          <Typography>
+                            <strong>Issued:</strong> {new Date(inv.issueDate).toLocaleDateString()}
+                          </Typography>
+                          {inv.dueDate && (
+                            <Typography>
+                              <strong>Due:</strong> {new Date(inv.dueDate).toLocaleDateString()}
+                            </Typography>
+                          )}
+                          {inv.status !== 'PAID' && (
+                            <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch('/api/invoices/checkout', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ invoiceId: inv.id, sendEmail: true }),
+                                    });
+                                    const data = await res.json();
+                                    if (data.paymentUrl) {
+                                      // Open Stripe checkout in new tab
+                                      window.open(data.paymentUrl, '_blank');
+                                      // Also copy to clipboard
+                                      navigator.clipboard.writeText(data.paymentUrl);
+                                      alert('Payment link created and copied to clipboard!');
+                                    } else {
+                                      alert('Error: ' + (data.error || 'Failed to create payment link'));
+                                    }
+                                  } catch (err) {
+                                    console.error('Checkout error:', err);
+                                    alert('Failed to create payment link');
+                                  }
+                                }}
+                                sx={{ fontSize: '12px', py: 0.5 }}
+                              >
+                                Send Payment Link
+                              </Button>
+                            </Box>
                           )}
                         </Paper>
                       ))}
                     </Stack>
                   ) : (
                     <Alert severity="info">
-                      No active subscriptions found for this client.
+                      No invoices yet. Click "Create Invoice" to send one.
                     </Alert>
                   )}
-                  
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="subtitle2" gutterBottom>Quick Actions</Typography>
-                    <Stack direction="row" spacing={2}>
-                      <Button 
-                        variant="outlined" 
-                        startIcon={<Refresh />}
-                        onClick={() => selectedLead && fetchSubscriptions(selectedLead.id)}
-                        sx={{ borderColor: glassTheme.cardBorder, color: glassTheme.textPrimary }}
-                      >
-                        Refresh
-                      </Button>
-                    </Stack>
-                  </Box>
                 </Box>
               )}
 
@@ -2027,7 +2239,7 @@ function AdminDashboardContent() {
         fullWidth
         PaperProps={{
           sx: { 
-            bgcolor: 'rgba(15,23,42,0.95)', 
+            bgcolor: 'rgba(15,23,42,1)', 
             border: `1px solid ${glassTheme.cardBorder}`, 
             color: glassTheme.textPrimary,
           }
@@ -2096,7 +2308,7 @@ function AdminDashboardContent() {
         fullWidth
         PaperProps={{
           sx: { 
-            bgcolor: 'rgba(15,23,42,0.95)', 
+            bgcolor: 'rgba(15,23,42,1)', 
             border: `1px solid ${glassTheme.cardBorder}`, 
             color: glassTheme.textPrimary,
           }
@@ -2140,7 +2352,7 @@ function AdminDashboardContent() {
         fullWidth
         PaperProps={{
           sx: { 
-            bgcolor: 'rgba(15,23,42,0.95)', 
+            bgcolor: 'rgba(15,23,42,1)', 
             border: `1px solid ${glassTheme.cardBorder}`, 
             color: glassTheme.textPrimary,
             maxHeight: '90vh',
@@ -2306,7 +2518,7 @@ function AdminDashboardContent() {
         fullWidth
         PaperProps={{
           sx: { 
-            bgcolor: 'rgba(15,23,42,0.95)', 
+            bgcolor: 'rgba(15,23,42,1)', 
             border: `1px solid ${glassTheme.cardBorder}`, 
             color: glassTheme.textPrimary,
           }
@@ -2402,6 +2614,215 @@ function AdminDashboardContent() {
             }}
           >
             Add Custom Service
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Create Invoice Dialog */}
+      <Dialog
+        open={invoiceDialogOpen}
+        onClose={() => setInvoiceDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            background: glassTheme.cardBg,
+            border: `1px solid ${glassTheme.cardBorder}`,
+            borderRadius: 2,
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: '#8b5cf6', borderBottom: `1px solid ${glassTheme.cardBorder}`, pb: 2 }}>
+          Create Invoice
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Stack spacing={3}>
+            {/* Line Items */}
+            <Box>
+              <Typography variant="subtitle2" gutterBottom sx={{ color: glassTheme.textSecondary }}>
+                Line Items
+              </Typography>
+              {invoiceLineItems.map((item, idx) => (
+                <Box key={idx} sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                  <TextField
+                    label="Description"
+                    value={item.description}
+                    onChange={(e) => {
+                      const newItems = [...invoiceLineItems];
+                      newItems[idx].description = e.target.value;
+                      setInvoiceLineItems(newItems);
+                    }}
+                    size="small"
+                    sx={{ flex: 2 }}
+                  />
+                  <TextField
+                    label="Qty"
+                    type="number"
+                    value={item.quantity}
+                    onChange={(e) => {
+                      const newItems = [...invoiceLineItems];
+                      newItems[idx].quantity = parseInt(e.target.value) || 1;
+                      setInvoiceLineItems(newItems);
+                    }}
+                    size="small"
+                    sx={{ width: 80 }}
+                  />
+                  <TextField
+                    label="Unit Price ($)"
+                    type="number"
+                    value={item.unitPrice / 100}
+                    onChange={(e) => {
+                      const newItems = [...invoiceLineItems];
+                      newItems[idx].unitPrice = Math.round((parseFloat(e.target.value) || 0) * 100);
+                      setInvoiceLineItems(newItems);
+                    }}
+                    size="small"
+                    sx={{ width: 120 }}
+                  />
+                  {invoiceLineItems.length > 1 && (
+                    <IconButton
+                      size="small"
+                      onClick={() => setInvoiceLineItems(invoiceLineItems.filter((_, i) => i !== idx))}
+                    >
+                      ×
+                    </IconButton>
+                  )}
+                </Box>
+              ))}
+              <Button
+                size="small"
+                startIcon={<Add />}
+                onClick={() => setInvoiceLineItems([...invoiceLineItems, { description: '', quantity: 1, unitPrice: 0 }])}
+              >
+                Add Line Item
+              </Button>
+            </Box>
+
+            {/* Tax Rate */}
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                label="Tax Rate (%)"
+                type="number"
+                value={invoiceTaxRate / 100}
+                onChange={(e) => setInvoiceTaxRate(Math.round((parseFloat(e.target.value) || 0) * 100))}
+                size="small"
+                sx={{ width: 120 }}
+              />
+              <TextField
+                label="Due In (days)"
+                type="number"
+                value={invoiceDueDays}
+                onChange={(e) => setInvoiceDueDays(parseInt(e.target.value) || 30)}
+                size="small"
+                sx={{ width: 120 }}
+              />
+            </Box>
+
+            {/* Notes */}
+            <TextField
+              label="Notes (optional)"
+              value={invoiceNotes}
+              onChange={(e) => setInvoiceNotes(e.target.value)}
+              size="small"
+              multiline
+              rows={2}
+              fullWidth
+            />
+
+            {/* Totals Preview */}
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.2)' }}>
+              {(() => {
+                const subtotal = invoiceLineItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+                const taxAmount = Math.round(subtotal * (invoiceTaxRate / 10000));
+                const total = subtotal + taxAmount;
+                return (
+                  <>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" sx={{ color: glassTheme.textSecondary }}>Subtotal:</Typography>
+                      <Typography>${(subtotal / 100).toFixed(2)}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" sx={{ color: glassTheme.textSecondary }}>Tax ({(invoiceTaxRate/100).toFixed(2)}%):</Typography>
+                      <Typography>${(taxAmount / 100).toFixed(2)}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography fontWeight="bold">Total:</Typography>
+                      <Typography fontWeight="bold" sx={{ color: '#8b5cf6' }}>${(total / 100).toFixed(2)}</Typography>
+                    </Box>
+                  </>
+                );
+              })()}
+            </Paper>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ borderTop: `1px solid ${glassTheme.cardBorder}`, py: 2, px: 3 }}>
+          <Button onClick={() => setInvoiceDialogOpen(false)} sx={{ color: glassTheme.textSecondary }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              if (!invoiceLineItems[0]?.description) {
+                alert('Add at least one line item');
+                return;
+              }
+              setSavingInvoice(true);
+              try {
+                const lineItems = invoiceLineItems.map(item => ({
+                  description: item.description,
+                  quantity: item.quantity,
+                  unitPrice: item.unitPrice,
+                  total: item.unitPrice * item.quantity,
+                }));
+                const res = await fetch('/api/invoices', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    leadId: selectedLead?.id,
+                    clientName: `${selectedLead?.firstName} ${selectedLead?.lastName}`.trim(),
+                    clientEmail: selectedLead?.email,
+                    lineItems,
+                    taxRate: invoiceTaxRate,
+                    notes: invoiceNotes,
+                    dueDate: new Date(Date.now() + invoiceDueDays * 24 * 60 * 60 * 1000).toISOString(),
+                    status: 'SENT',
+                  }),
+                });
+                const data = await res.json();
+                if (data.id) {
+                  // Now create Stripe checkout and send email
+                  const checkoutRes = await fetch('/api/invoices/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ invoiceId: data.id, sendEmail: true }),
+                  });
+                  const checkoutData = await checkoutRes.json();
+                  if (checkoutData.paymentUrl) {
+                    window.open(checkoutData.paymentUrl, '_blank');
+                    navigator.clipboard.writeText(checkoutData.paymentUrl);
+                    alert(`Invoice ${data.invoiceNumber} created and payment link sent to ${selectedLead?.email}!`);
+                  } else {
+                    alert(`Invoice ${data.invoiceNumber} created! (Email could not be sent)`);
+                  }
+                  setInvoiceDialogOpen(false);
+                  if (selectedLead?.id) fetchInvoices(selectedLead.id);
+                  setInvoiceLineItems([{ description: '', quantity: 1, unitPrice: 0 }]);
+                  setInvoiceTaxRate(0);
+                  setInvoiceNotes('');
+                } else {
+                  alert('Error: ' + (data.error || 'Failed to create invoice'));
+                }
+              } catch (err) {
+                console.error('Failed to create invoice:', err);
+                alert('Failed to create invoice');
+              } finally {
+                setSavingInvoice(false);
+              }
+            }}
+            disabled={savingInvoice}
+            sx={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)', fontWeight: 'bold' }}
+          >
+            {savingInvoice ? 'Creating...' : 'Create & Send Invoice'}
           </Button>
         </DialogActions>
       </Dialog>
