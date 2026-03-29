@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { sendOnboardingEmail } from '@/lib/email';
 
 // GET /api/admin/leads - List all leads
 export async function GET(request: NextRequest) {
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { firstName, lastName, email, company, title, phone, linkedinUrl, serviceCategories, status, onboardingCompleted, onboardingStep } = body;
+    const { firstName, lastName, email, company, title, phone, linkedinUrl, serviceCategories, status, onboardingCompleted, onboardingStep, sendWelcomeEmail } = body;
 
     const token = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
 
@@ -57,7 +58,20 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, lead, token });
+    // Send welcome email with onboarding link automatically (unless sendWelcomeEmail is explicitly false)
+    let emailResult = null;
+    if (email && sendWelcomeEmail !== false) {
+      const baseUrl = process.env.NEXTAUTH_URL || 'https://onboarding.simplifyingbusinesses.com';
+      const onboardLink = `${baseUrl}/onboard/${token}`;
+      emailResult = await sendOnboardingEmail({
+        to: email,
+        firstName: firstName || 'there',
+        onboardLink,
+        companyName: 'ALBS',
+      });
+    }
+
+    return NextResponse.json({ success: true, lead, token, emailResult });
   } catch (error: any) {
     console.error('Error creating lead:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

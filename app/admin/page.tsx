@@ -662,7 +662,11 @@ function AdminDashboardContent() {
         setLeads([data.lead, ...leads]);
         setDialogOpen(false);
         setNewLead({ firstName: '', lastName: '', email: '', company: '', title: '', phone: '', serviceCategories: '' });
-        alert(`Lead created! Onboarding link: ${window.location.origin}/onboard/${data.token}`);
+        const onboardLink = `${window.location.origin}/onboard/${data.token}`;
+        const emailSent = data.emailResult?.success;
+        alert(
+          `Lead created!${emailSent ? ' ✅ Welcome email sent automatically.' : ''}\n\nOnboarding link: ${onboardLink}`
+        );
       }
     } catch (err) {
       console.error('Failed to create lead:', err);
