@@ -34,8 +34,20 @@ export async function POST(request: NextRequest) {
     case 'checkout.session.completed': {
       const session = event.data.object;
       const leadId = session.metadata?.leadId;
+      const invoiceId = session.metadata?.invoiceId;
       const customerId = session.customer;
       const isSubscription = session.mode === 'subscription';
+
+      // Handle invoice payment
+      if (invoiceId) {
+        await prisma.invoice.update({
+          where: { id: invoiceId },
+          data: {
+            status: 'PAID',
+            paidAt: new Date(),
+          },
+        });
+      }
 
       if (leadId) {
         // Store stripe customer ID for card-on-file billing

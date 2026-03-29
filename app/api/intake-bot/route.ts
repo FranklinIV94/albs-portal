@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { Resend } from 'resend';
 import { PrismaClient } from '@prisma/client';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Map intake service names to ALBS service catalog values
 // This needs to match the service names in dist-intake constants.tsx
@@ -65,11 +65,12 @@ export async function POST(req: NextRequest) {
 
     // 4. Send welcome email to client
     try {
-      await resend.emails.send({
-        from: 'All Lines Business Solutions <onboarding@simplifyingbusinesses.com>',
-        to: [client?.email],
-        subject: 'Welcome to All Lines Business Solutions — Your Onboarding Portal',
-        html: `
+      if (resend) {
+        await resend.emails.send({
+          from: 'All Lines Business Solutions <onboarding@simplifyingbusinesses.com>',
+          to: [client?.email],
+          subject: 'Welcome to All Lines Business Solutions — Your Onboarding Portal',
+          html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #0073bc; margin: 0;">All Lines</h1>
@@ -114,8 +115,9 @@ export async function POST(req: NextRequest) {
             <p style="color: #999; font-size: 12px;">All Lines Business Solutions | Simplifying Small Business</p>
           </div>
         `
-      });
-      console.log(`[intake-bot] Welcome email sent to: ${client?.email}`);
+        });
+        console.log(`[intake-bot] Welcome email sent to: ${client?.email}`);
+      }
     } catch (emailError) {
       // Email failure shouldn't fail the whole request — lead is created
       console.error(`[intake-bot] Email send failed for ${client?.email}:`, emailError);

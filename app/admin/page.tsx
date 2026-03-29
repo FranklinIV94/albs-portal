@@ -254,6 +254,8 @@ function AdminDashboardContent() {
   const [tab, setTab] = useState(0);
   const [newLead, setNewLead] = useState({ firstName: '', lastName: '', email: '', company: '', title: '', phone: '', serviceCategories: '' });
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [availableServices, setAvailableServices] = useState<any[]>([]);
   const [prepaidDialogOpen, setPrepaidDialogOpen] = useState(false);
   const [prepaidClient, setPrepaidClient] = useState({ firstName: '', lastName: '', email: '', company: '', phone: '' });
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -405,6 +407,17 @@ function AdminDashboardContent() {
   useEffect(() => {
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (dialogOpen && availableServices.length === 0) {
+      fetch('/api/services')
+        .then(r => r.json())
+        .then(data => {
+          if (data.services) setAvailableServices(data.services.filter((s: any) => s.isActive));
+        })
+        .catch(() => {});
+    }
+  }, [dialogOpen]);
 
   useEffect(() => {
     if (chatLeadId && leads.length > 0) {
@@ -655,13 +668,14 @@ function AdminDashboardContent() {
       const res = await fetch('/api/admin/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newLead),
+        body: JSON.stringify({ ...newLead, serviceIds: selectedServiceIds }),
       });
       const data = await res.json();
       if (data.success) {
         setLeads([data.lead, ...leads]);
         setDialogOpen(false);
         setNewLead({ firstName: '', lastName: '', email: '', company: '', title: '', phone: '', serviceCategories: '' });
+        setSelectedServiceIds([]);
         const onboardLink = `${window.location.origin}/onboard/${data.token}`;
         const emailSent = data.emailResult?.success;
         alert(
@@ -1335,6 +1349,44 @@ function AdminDashboardContent() {
                   />
                 ))}
               </FormGroup>
+            </Box>
+
+            {/* Services selector */}
+            <Box>
+              <Typography variant="body2" sx={{ color: '#94a3b8', mb: 1 }}>
+                Assign Services (optional)
+              </Typography>
+              <Box sx={{ maxHeight: 200, overflowY: 'auto', bgcolor: 'rgba(30,41,59,0.8)', borderRadius: 1, p: 1, border: '1px solid rgba(148,163,184,0.3)' }}>
+                {availableServices.length === 0 ? (
+                  <Typography variant="caption" sx={{ color: '#64748b' }}>Loading services...</Typography>
+                ) : (
+                  availableServices.map(service => (
+                    <FormControlLabel
+                      key={service.id}
+                      control={
+                        <Checkbox
+                          checked={selectedServiceIds.includes(service.id)}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              setSelectedServiceIds([...selectedServiceIds, service.id]);
+                            } else {
+                              setSelectedServiceIds(selectedServiceIds.filter(id => id !== service.id));
+                            }
+                          }}
+                          size="small"
+                          sx={{ color: '#94a3b8', '&.Mui-checked': { color: '#6366f1' } }}
+                        />
+                      }
+                      label={<span style={{ color: '#cbd5e1', fontSize: 13 }}>{service.icon} {service.name} — {service.priceDisplay}</span>}
+                    />
+                  ))
+                )}
+              </Box>
+              {selectedServiceIds.length > 0 && (
+                <Typography variant="caption" sx={{ color: '#6366f1', mt: 0.5, display: 'block' }}>
+                  {selectedServiceIds.length} service(s) selected
+                </Typography>
+              )}
             </Box>
           </Stack>
         </DialogContent>

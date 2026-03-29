@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { validateApiKey } from '@/lib/auth';
 
 // GET /api/invoices - List invoices (with filters)
 export async function GET(request: NextRequest) {
-  const auth = validateApiKey(request);
-  if (!auth.valid) {
-    return NextResponse.json({ error: auth.error }, { status: 401 });
-  }
+  // Auth handled by middleware for admin routes - no additional API key needed
+  // when called from the admin dashboard
   
   try {
     const { searchParams } = new URL(request.url);
@@ -50,10 +47,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/invoices - Create new invoice (for Zo or manual)
 export async function POST(request: NextRequest) {
-  const auth = validateApiKey(request);
-  if (!auth.valid) {
-    return NextResponse.json({ error: auth.error }, { status: 401 });
-  }
+  // Auth handled by middleware for admin routes
   
   try {
     const body = await request.json();

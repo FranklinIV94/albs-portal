@@ -267,6 +267,29 @@ async function main() {
       sortOrder: 22,
       isActive: true,
     },
+    // CONSULTING SERVICES (NEW - March 2026)
+    {
+      id: 'consulting-30min',
+      name: '30-Minute Consultation',
+      category: 'CONSULTING' as ServiceCategory,
+      description: 'Free 30-minute discovery call to discuss your business needs and explore how ALBS can help. No obligation, no pressure — just a conversation.',
+      priceDisplay: 'FREE',
+      basePrice: 0,
+      icon: '💬',
+      sortOrder: 27,
+      isActive: true,
+    },
+    {
+      id: 'consulting-hourly',
+      name: 'Consulting (Hourly)',
+      category: 'CONSULTING' as ServiceCategory,
+      description: 'One-on-one consulting sessions at $125/hour. General business consulting, process improvement, automation strategy, and technical guidance tailored to your needs.',
+      priceDisplay: '$125/hr',
+      basePrice: 12500,
+      icon: '⏱️',
+      sortOrder: 28,
+      isActive: true,
+    },
     // INSURANCE SERVICES (NEW - March 2026)
     {
       id: 'u65-health-enrollment',

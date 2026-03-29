@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { firstName, lastName, email, company, title, phone, linkedinUrl, serviceCategories, status, onboardingCompleted, onboardingStep, sendWelcomeEmail } = body;
+    const { firstName, lastName, email, company, title, phone, linkedinUrl, serviceCategories, serviceIds, status, onboardingCompleted, onboardingStep, sendWelcomeEmail } = body;
 
     const token = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
 
@@ -58,6 +58,24 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Assign services to lead if serviceIds provided
+    if (serviceIds && Array.isArray(serviceIds) && serviceIds.length > 0) {
+      // Validate serviceIds exist
+      const validServices = await prisma.service.findMany({
+        where: { id: { in: serviceIds } },
+        select: { id: true },
+      });
+      const validServiceIds = validServices.map(s => s.id);
+
+      for (const serviceId of serviceIds) {
+        if (validServiceIds.includes(serviceId)) {
+          await prisma.leadService.create({
+            data: { leadId: lead.id, serviceId },
+          });
+        }
+      }
+    }
+
     // Send welcome email with onboarding link automatically (unless sendWelcomeEmail is explicitly false)
     let emailResult = null;
     if (email && sendWelcomeEmail !== false) {
@@ -71,7 +89,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, lead, token, emailResult });
+    // Return updated lead with services
+    const leadWithServices = await prisma.lead.findUnique({
+      where: { id: lead.id },
+      include: { leadServices: { include: { service: true } } },
+    });
+
+    return NextResponse.json({ success: true, lead: leadWithServices, token, emailResult });
   } catch (error: any) {
     console.error('Error creating lead:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
