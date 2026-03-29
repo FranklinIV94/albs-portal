@@ -7,26 +7,53 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const createdAfter = searchParams.get('createdAfter');
+    const email = searchParams.get('email');
+    const search = searchParams.get('search');
+    const serviceCategories = searchParams.get('serviceCategories');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = parseInt(searchParams.get('offset') || '0');
 
-    const leads = await prisma.lead.findMany({
-      where: status ? { status: status as any } : undefined,
-      include: {
-        positions: true,
-        leadServices: {
-          include: { service: true }
+    // Build where clause
+    const where: any = {};
+    if (status) where.status = status;
+    if (email) where.email = { contains: email, mode: 'insensitive' };
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { company: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (createdAfter) {
+      where.createdAt = { gte: new Date(createdAfter) };
+    }
+    if (serviceCategories) {
+      where.serviceCategories = { contains: serviceCategories };
+    }
+
+    const [leads, total] = await Promise.all([
+      prisma.lead.findMany({
+        where,
+        include: {
+          positions: true,
+          leadServices: { include: { service: true } },
+          contracts: true,
+          clientRequests: true,
         },
-        contracts: true,
-        clientRequests: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.lead.count({ where }),
+    ]);
 
     const services = await prisma.service.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
     });
 
-    return NextResponse.json({ leads, services });
+    return NextResponse.json({ leads, services, total, limit, offset });
   } catch (error: any) {
     console.error('Error fetching leads:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -81,11 +108,22 @@ export async function POST(request: NextRequest) {
     if (email && sendWelcomeEmail !== false) {
       const baseUrl = process.env.NEXTAUTH_URL || 'https://onboarding.simplifyingbusinesses.com';
       const onboardLink = `${baseUrl}/onboard/${token}`;
+      const leadWithServices = await prisma.lead.findUnique({
+        where: { id: lead.id },
+        include: { leadServices: { include: { service: true } } },
+      });
+      const services = leadWithServices?.leadServices.map(ls => ({
+        name: ls.service.name,
+        description: ls.service.description || undefined,
+        priceDisplay: ls.service.priceDisplay || undefined,
+      })) || [];
       emailResult = await sendOnboardingEmail({
         to: email,
-        firstName: firstName || 'there',
+        firstName: firstName || '',
         onboardLink,
         companyName: 'ALBS',
+        clientCompany: company || undefined,
+        services,
       });
     }
 
@@ -106,7 +144,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { leadId, status, notes, serviceCategories } = body;
+    const { leadId, status, notes, serviceCategories, firstName, lastName } = body;
 
     const lead = await prisma.lead.update({
       where: { id: leadId },
@@ -114,6 +152,8 @@ export async function PATCH(request: NextRequest) {
         ...(status && { status: status as any }),
         ...(notes !== undefined && { notes }),
         ...(serviceCategories !== undefined && { serviceCategories }),
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
       },
     });
 

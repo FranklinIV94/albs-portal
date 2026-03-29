@@ -10,6 +10,8 @@ interface SendOnboardingEmailParams {
   firstName: string;
   onboardLink: string;
   companyName?: string;
+  clientCompany?: string;
+  services?: Array<{ name: string; description?: string; priceDisplay?: string }>;
 }
 
 export async function sendOnboardingEmail({
@@ -17,80 +19,157 @@ export async function sendOnboardingEmail({
   firstName,
   onboardLink,
   companyName = 'ALBS',
+  clientCompany,
+  services = [],
 }: SendOnboardingEmailParams) {
   const resend = getResend();
   if (!resend) return { success: false, error: 'Resend not configured' };
-  try {
-    const data = await resend.emails.send({
-      from: 'onboarding@simplifyingbusinesses.com',
-      to: [to],
-      reply_to: 'onboarding@simplifyingbusinesses.com',
-      subject: 'Complete Your Profile - Invitation',
-      html: `
+
+  const displayName = firstName && firstName.trim() ? firstName : 'there';
+  const servicesHtml = services.length > 0
+    ? services.map(s => `
+        <tr>
+          <td style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb; vertical-align: top;">
+            <span style="color: #1e40af; font-size: 16px;">✦</span>
+          </td>
+          <td style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb;">
+            <p style="margin: 0; color: #1f2937; font-size: 15px; font-weight: 600;">${s.name}</p>
+            ${s.description ? `<p style="margin: 4px 0 0; color: #6b7280; font-size: 13px; line-height: 1.5;">${s.description}</p>` : ''}
+          </td>
+          ${s.priceDisplay ? `
+          <td style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; white-space: nowrap;">
+            <span style="color: #059669; font-weight: 600; font-size: 14px;">${s.priceDisplay}</span>
+          </td>` : ''}
+        </tr>
+      `).join('')
+    : '';
+
+  const html = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5; padding: 40px 20px;">
+<body style="margin: 0; padding: 0; background-color: #f0f4f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f4f8; padding: 40px 20px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+
           <!-- Header -->
           <tr>
-            <td style="background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); padding: 30px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Complete Your Profile</h1>
+            <td style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); padding: 36px 40px; text-align: center;">
+              <p style="color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 10px;">Welcome to</p>
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">All Lines Business Solutions</h1>
             </td>
           </tr>
-          
-          <!-- Content -->
+
+          <!-- Body -->
           <tr>
-            <td style="padding: 30px;">
-              <p style="color: #1f2937; font-size: 16px; margin: 0 0 20px 0;">
-                Hi ${firstName},
+            <td style="padding: 40px;">
+
+              <!-- Greeting -->
+              <p style="color: #1f2937; font-size: 17px; line-height: 1.7; margin: 0 0 28px;">
+                Dear ${displayName}${clientCompany ? ', owner of ' + clientCompany : ''},
               </p>
-              
-              <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
-                We've prepared your expert profile and would like you to verify your availability. 
-                It only takes a minute to complete.
+
+              <!-- Opening -->
+              <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+                On behalf of everyone at <strong>All Lines Business Solutions (ALBS)</strong>, thank you for placing your trust in us. We are committed to delivering exceptional service and look forward to helping you achieve your business goals.
               </p>
-              
-              <!-- CTA Button -->
-              <table width="100%" cellpadding="0" cellspacing="0">
+
+              <!-- Assigned Services -->
+              ${services.length > 0 ? `
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; overflow: hidden; margin: 28px 0; border: 1px solid #e2e8f0;">
                 <tr>
-                  <td align="center" style="padding: 20px 0;">
-                    <a href="${onboardLink}" style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+                  <td style="padding: 16px 20px; background-color: #1e3a8a;">
+                    <p style="color: #ffffff; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin: 0;">Your Assigned Services</p>
+                  </td>
+                </tr>
+                ${servicesHtml}
+              </table>
+              ` : ''}
+
+              <!-- What Happens Next -->
+              <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 16px; font-weight: 600;">
+                What Happens Next
+              </p>
+              <ol style="color: #4b5563; font-size: 14px; line-height: 1.8; margin: 0 0 28px; padding-left: 20px;">
+                <li style="margin-bottom: 8px;">Complete your client profile using the link below — this helps us serve you better.</li>
+                <li style="margin-bottom: 8px;">Our team will review your information and begin your service delivery.</li>
+                <li style="margin-bottom: 8px;">You will receive a confirmation once your onboarding is complete.</li>
+                <li>We will reach out with any questions or to schedule next steps.</li>
+              </ol>
+
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 32px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${onboardLink}" style="display: inline-block; background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 10px; font-weight: 600; font-size: 15px; letter-spacing: 0.3px;">
                       Complete Your Profile →
                     </a>
                   </td>
                 </tr>
+                <tr>
+                  <td align="center" style="padding-top: 14px;">
+                    <p style="color: #9ca3af; font-size: 12px; margin: 0; word-break: break-all;">${onboardLink}</p>
+                  </td>
+                </tr>
               </table>
-              
-              <p style="color: #6b7280; font-size: 13px; margin: 0;">
-                Or copy this link: <span style="color: #2563eb; word-break: break-all;">${onboardLink}</span>
+
+              <!-- Questions -->
+              <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0 0 8px;">
+                If you have any questions before then, please don't hesitate to reach out:
+              </p>
+              <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                <strong>Email:</strong> <a href="mailto:support@simplifyingbusinesses.com" style="color: #2563eb;">support@simplifyingbusinesses.com</a><br>
+                <strong>Phone:</strong> (561) 479-8624
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Signature -->
+          <tr>
+            <td style="padding: 0 40px 36px;">
+              <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 20px;">
+                We appreciate your business and look forward to working with you.
+              </p>
+              <p style="color: #1f2937; font-size: 15px; margin: 0;">
+                Warm regards,<br>
+                <strong>Franklin Bryant IV</strong><br>
+                <span style="color: #6b7280; font-size: 13px;">Chief Operating Officer<br>All Lines Business Solutions</span>
               </p>
             </td>
           </tr>
-          
+
           <!-- Footer -->
           <tr>
-            <td style="background-color: #f9fafb; padding: 20px 30px; text-align: center;">
-              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                © ${new Date().getFullYear()} ${companyName}. All rights reserved.
+            <td style="background-color: #f8fafc; padding: 20px 40px; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 11px; margin: 0; text-align: center; line-height: 1.6;">
+                © ${new Date().getFullYear()} All Lines Business Solutions • Punta Gorda, FL<br>
+                <a href="mailto:support@simplifyingbusinesses.com" style="color: #9ca3af;">support@simplifyingbusinesses.com</a> • (561) 479-8624
               </p>
             </td>
           </tr>
+
         </table>
       </td>
     </tr>
   </table>
 </body>
 </html>
-      `,
-    });
+      `;
 
+  try {
+    const data = await resend.emails.send({
+      from: 'onboarding@simplifyingbusinesses.com',
+      to: [to],
+      reply_to: 'onboarding@simplifyingbusinesses.com',
+      subject: `Welcome to ALBS${clientCompany ? ' — ' + clientCompany : ''}`,
+      html,
+    });
     return { success: true, data };
   } catch (error: any) {
     console.error('Resend error:', error);
