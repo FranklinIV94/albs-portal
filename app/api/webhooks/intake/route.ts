@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const lastName = nameParts.slice(1).join(' ') || ''
 
     // Check for duplicate email
-    const existing = await prisma.lead.findUnique({ where: { email } })
+    const existing = await prisma.lead.findFirst({ where: { email } })
     if (existing) {
       return NextResponse.json({
         success: true,
