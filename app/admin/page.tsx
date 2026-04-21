@@ -8,13 +8,13 @@ import {
   Chip, Dialog, DialogTitle, DialogContent, DialogActions,
   FormControl, InputLabel, Select, MenuItem, IconButton,
   Paper, Tabs, Tab, Stack, Alert, Checkbox, FormControlLabel, FormGroup, Divider, CircularProgress,
-  ThemeProvider, createTheme, CssBaseline
+  ThemeProvider, createTheme, CssBaseline, Menu
 } from '@mui/material';
 import { 
   PersonAdd, ContentCopy, Visibility, Edit, CheckCircle,
   Schedule, Payment, Description, Refresh, Save, Delete, Chat,
   CloudUpload, Add, Send, AttachMoney, Settings, TrendingUp, AccountBalance,
-  Assignment, Note, History, CheckBox, Flag
+  Assignment, Note, History, CheckBox, Flag, ViewKanban, FileDownload, ArrowForward, Close
 } from '@mui/icons-material';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -268,6 +268,13 @@ function AdminDashboardContent() {
   const chatLeadId = searchParams.get('chat');
   
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+  const [bulkStatusAnchor, setBulkStatusAnchor] = useState<null | HTMLElement>(null);
+  const [bulkServiceAnchor, setBulkServiceAnchor] = useState<null | HTMLElement>(null);
+  const [pipelineSearch, setPipelineSearch] = useState('');
+  const [pipelineCategory, setPipelineCategory] = useState('');
+  const [quickAdd, setQuickAdd] = useState({ firstName: '', lastName: '', email: '', company: '' });
+  const [quickAddLoading, setQuickAddLoading] = useState(false);
   const [analytics, setAnalytics] = useState<any>(null);
   const [loadingSubscriptions, setLoadingSubscriptions] = useState(false);
   
@@ -857,7 +864,38 @@ function AdminDashboardContent() {
               Manage clients, services, and billing
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Quick Add Lead */}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', bgcolor: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 2, p: 0.8 }}>
+              <TextField size="small" placeholder="First" value={quickAdd.firstName} onChange={e => setQuickAdd({...quickAdd, firstName: e.target.value})} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8rem' }, width: 90 }} />
+              <TextField size="small" placeholder="Last" value={quickAdd.lastName} onChange={e => setQuickAdd({...quickAdd, lastName: e.target.value})} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8rem' }, width: 90 }} />
+              <TextField size="small" placeholder="Email" value={quickAdd.email} onChange={e => setQuickAdd({...quickAdd, email: e.target.value})} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8rem' }, width: 150 }} />
+              <TextField size="small" placeholder="Company" value={quickAdd.company} onChange={e => setQuickAdd({...quickAdd, company: e.target.value})} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8rem' }, width: 120 }} />
+              <Button 
+                size="small" variant="contained"
+                disabled={quickAddLoading || !quickAdd.firstName || !quickAdd.email}
+                onClick={async () => {
+                  setQuickAddLoading(true);
+                  try {
+                    const res = await fetch('/api/admin/leads', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ ...quickAdd, sendWelcomeEmail: false }),
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      setLeads([data.lead, ...leads]);
+                      setQuickAdd({ firstName: '', lastName: '', email: '', company: '' });
+                      openLeadDetails(data.lead);
+                    }
+                  } catch (err) { console.error(err); }
+                  finally { setQuickAddLoading(false); }
+                }}
+                sx={{ fontSize: '0.75rem', py: 0.5, background: glassTheme.accentGradient }}
+              >
+                {quickAddLoading ? '...' : 'Add \u0026 Open'}
+              </Button>
+            </Box>
             <Button 
               variant="outlined"
               startIcon={<Settings />}
@@ -950,7 +988,8 @@ function AdminDashboardContent() {
           <Tab label="AI Services" />
           <Tab label="Payroll" />
           <Tab label="📋 All Invoices" />
-          {analytics && <Tab label="📊 Analytics" />}
+          <Tab label="📊 Pipeline" />
+          {analytics && <Tab label="📈 Analytics" />}
         </Tabs>
       </Box>
 
@@ -1046,8 +1085,150 @@ function AdminDashboardContent() {
         </Box>
       )}
 
-      {/* Analytics Tab (tab >= 4) */}
-      {tab >= 4 && analytics ? (
+      {/* Pipeline Board Tab (tab === 4) */}
+      {tab === 4 && (
+        <Box sx={{ p: 3 }}>
+          {/* Pipeline Filters */}
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+            <TextField
+              size="small"
+              placeholder="Search name, email, company..."
+              value={pipelineSearch}
+              onChange={e => setPipelineSearch(e.target.value)}
+              sx={{ minWidth: 250 }}
+            />
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>Category</InputLabel>
+              <Select value={pipelineCategory} label="Category" onChange={e => setPipelineCategory(e.target.value)}>
+                <MenuItem value="">All Categories</MenuItem>
+                {Object.entries(CATEGORIES).map(([key, label]) => (
+                  <MenuItem key={key} value={key}>{label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          {/* Stage Metrics */}
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+            <Paper sx={{ p: 2, bgcolor: glassTheme.cardBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2, flex: 1, minWidth: 140 }}>
+              <Typography variant="caption" sx={{ color: glassTheme.textSecondary }}>Total Leads</Typography>
+              <Typography variant="h4" fontWeight="bold" sx={{ color: '#6366f1' }}>{leads.length}</Typography>
+            </Paper>
+            <Paper sx={{ p: 2, bgcolor: glassTheme.cardBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2, flex: 1, minWidth: 140 }}>
+              <Typography variant="caption" sx={{ color: glassTheme.textSecondary }}>Converted This Week</Typography>
+              <Typography variant="h4" fontWeight="bold" sx={{ color: '#10b981' }}>{leads.filter(l => l.status !== 'NEW' && l.status !== 'ONBOARDING' && new Date(l.createdAt).getTime() > Date.now() - 7*86400000).length}</Typography>
+            </Paper>
+            <Paper sx={{ p: 2, bgcolor: glassTheme.cardBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2, flex: 1, minWidth: 140 }}>
+              <Typography variant="caption" sx={{ color: glassTheme.textSecondary }}>Active Pipeline</Typography>
+              <Typography variant="h4" fontWeight="bold" sx={{ color: '#f59e0b' }}>{leads.filter(l => !['COMPLETE','NEW'].includes(l.status)).length}</Typography>
+            </Paper>
+          </Box>
+
+          {/* Kanban Columns */}
+          <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2 }}>
+            {STATUSES.map(status => {
+              const stageColors: Record<string, string> = {
+                NEW: 'rgba(148,163,184,0.15)',
+                ONBOARDING: 'rgba(99,102,241,0.15)',
+                CONTRACT: 'rgba(168,85,247,0.15)',
+                PAYMENT: 'rgba(245,158,11,0.15)',
+                ACTIVE: 'rgba(16,185,129,0.15)',
+                WORK_IN_PROGRESS: 'rgba(59,130,246,0.15)',
+                COMPLETE: 'rgba(239,68,68,0.15)',
+              };
+              const borderColors: Record<string, string> = {
+                NEW: 'rgba(148,163,184,0.4)',
+                ONBOARDING: 'rgba(99,102,241,0.4)',
+                CONTRACT: 'rgba(168,85,247,0.4)',
+                PAYMENT: 'rgba(245,158,11,0.4)',
+                ACTIVE: 'rgba(16,185,129,0.4)',
+                WORK_IN_PROGRESS: 'rgba(59,130,246,0.4)',
+                COMPLETE: 'rgba(239,68,68,0.4)',
+              };
+              const statusIdx = STATUSES.indexOf(status);
+              const filtered = leads.filter(l => l.status === status &&
+                (pipelineSearch ? `${l.firstName} ${l.lastName} ${l.email} ${l.company}`.toLowerCase().includes(pipelineSearch.toLowerCase()) : true) &&
+                (pipelineCategory ? l.leadServices?.some((ls: any) => ls.service?.category === pipelineCategory) : true)
+              );
+              return (
+                <Box key={status} sx={{ minWidth: 260, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <Paper sx={{
+                    bgcolor: stageColors[status],
+                    border: `1px solid ${borderColors[status]}`,
+                    borderRadius: 2,
+                    p: 1.5,
+                    mb: 1,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}>
+                    <Typography variant="subtitle2" fontWeight="bold" sx={{ color: glassTheme.textPrimary, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.7rem' }}>
+                      {status.replace(/_/g, ' ')}
+                    </Typography>
+                    <Chip label={filtered.length} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: glassTheme.textPrimary, height: 22, fontSize: '0.7rem' }} />
+                  </Paper>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, flex: 1, overflowY: 'auto', maxHeight: '65vh' }}>
+                    {filtered.map(lead => {
+                      const daysInStage = Math.floor((Date.now() - new Date(lead.createdAt).getTime()) / 86400000);
+                      return (
+                        <Paper key={lead.id} sx={{
+                          p: 2,
+                          bgcolor: glassTheme.cardBg,
+                          border: `1px solid ${glassTheme.cardBorder}`,
+                          borderRadius: 2,
+                          cursor: 'default',
+                          transition: 'border-color 0.2s',
+                          '&:hover': { borderColor: '#6366f1' },
+                        }}>
+                          <Typography variant="body2" fontWeight="bold" sx={{ color: glassTheme.textPrimary, mb: 0.25 }}>
+                            {lead.firstName} {lead.lastName}
+                          </Typography>
+                          {lead.company && <Typography variant="caption" sx={{ color: glassTheme.textSecondary, display: 'block' }}>{lead.company}</Typography>}
+                          {lead.email && <Typography variant="caption" sx={{ color: 'rgba(99,102,241,0.8)', display: 'block' }}>{lead.email}</Typography>}
+                          <Divider sx={{ my: 1, borderColor: 'rgba(255,255,255,0.08)' }} />
+                          <Typography variant="caption" sx={{ color: glassTheme.textSecondary, display: 'block', mb: 0.5 }}>
+                            🕐 {daysInStage}d in {status.replace(/_/g, ' ')}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: glassTheme.textSecondary, display: 'block', mb: 1 }}>
+                            Last: {new Date(lead.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                            {statusIdx < STATUSES.length - 1 && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                startIcon={<ArrowForward />}
+                                onClick={() => updateLeadStatus(lead.id, STATUSES[statusIdx + 1])}
+                                sx={{ fontSize: '0.65rem', py: 0.3, px: 1, borderColor: 'rgba(99,102,241,0.4)', color: '#a5b4fc', '&:hover': { borderColor: '#6366f1', bgcolor: 'rgba(99,102,241,0.1)' } }}
+                              >
+                                {STATUSES[statusIdx + 1].replace(/_/g, ' ')}
+                              </Button>
+                            )}
+                            <Button
+                              size="small"
+                              variant="text"
+                              onClick={() => openLeadDetails(lead)}
+                              sx={{ fontSize: '0.65rem', py: 0.3, px: 1, color: glassTheme.textSecondary }}
+                            >
+                              Details
+                            </Button>
+                          </Box>
+                        </Paper>
+                      );
+                    })}
+                    {filtered.length === 0 && (
+                      <Typography variant="caption" sx={{ color: glassTheme.textSecondary, textAlign: 'center', py: 2 }}>No leads</Typography>
+                    )}
+                  </Box>
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
+      )}
+
+      {/* Analytics Tab (tab >= 5) */}
+      {tab >= 5 && analytics ? (
         <Box sx={{ p: 3 }}>
           <Typography variant="h5" sx={{ color: glassTheme.textPrimary, mb: 3 }}>
             📊 Analytics Dashboard
@@ -1114,6 +1295,7 @@ function AdminDashboardContent() {
 
       {/* Lead Table (tabs 0-2) */}
       {tab <= 2 && (
+      <>
       <TableContainer component={Paper} sx={{ 
         bgcolor: glassTheme.tableBg, 
         border: `1px solid ${glassTheme.cardBorder}`,
@@ -1124,6 +1306,42 @@ function AdminDashboardContent() {
         <Table>
           <TableHead>
             <TableRow sx={{ bgcolor: glassTheme.tableHeaderBg }}>
+              <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}`, width: 48 }}>
+                <Checkbox
+                  checked={leads.filter(l => {
+                    if (tab === 1) return l.leadServices?.some((s: any) => s.service.name.includes('AI'));
+                    if (tab === 2) return l.leadServices?.some((s: any) => ['Tax', 'Payroll'].some((t: string) => s.service.name.includes(t)));
+                    return true;
+                  }).length > 0 && leads.filter(l => {
+                    if (tab === 1) return l.leadServices?.some((s: any) => s.service.name.includes('AI'));
+                    if (tab === 2) return l.leadServices?.some((s: any) => ['Tax', 'Payroll'].some((t: string) => s.service.name.includes(t)));
+                    return true;
+                  }).every(l => selectedLeadIds.has(l.id))}
+                  indeterminate={leads.filter(l => {
+                    if (tab === 1) return l.leadServices?.some((s: any) => s.service.name.includes('AI'));
+                    if (tab === 2) return l.leadServices?.some((s: any) => ['Tax', 'Payroll'].some((t: string) => s.service.name.includes(t)));
+                    return true;
+                  }).some(l => selectedLeadIds.has(l.id)) && !leads.filter(l => {
+                    if (tab === 1) return l.leadServices?.some((s: any) => s.service.name.includes('AI'));
+                    if (tab === 2) return l.leadServices?.some((s: any) => ['Tax', 'Payroll'].some((t: string) => s.service.name.includes(t)));
+                    return true;
+                  }).every(l => selectedLeadIds.has(l.id))}
+                  onChange={e => {
+                    const visible = leads.filter(l => {
+                      if (tab === 1) return l.leadServices?.some((s: any) => s.service.name.includes('AI'));
+                      if (tab === 2) return l.leadServices?.some((s: any) => ['Tax', 'Payroll'].some((t: string) => s.service.name.includes(t)));
+                      return true;
+                    });
+                    if (e.target.checked) {
+                      setSelectedLeadIds(new Set([...selectedLeadIds, ...visible.map((l: any) => l.id)]));
+                    } else {
+                      const newSet = new Set(selectedLeadIds);
+                      visible.forEach((l: any) => newSet.delete(l.id));
+                      setSelectedLeadIds(newSet);
+                    }
+                  }}
+                />
+              </TableCell>
               <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Name</TableCell>
               <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Company</TableCell>
               <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, borderBottom: `2px solid ${glassTheme.cardBorder}` }}>Email</TableCell>
@@ -1143,7 +1361,18 @@ function AdminDashboardContent() {
                 '&:hover': { bgcolor: glassTheme.tableRowHover }, 
                 borderBottom: `1px solid ${glassTheme.tableRowBorder}`,
                 transition: 'background 0.2s',
+                bgcolor: selectedLeadIds.has(lead.id) ? 'rgba(99,102,241,0.08)' : undefined,
               }}>
+                <TableCell sx={{ width: 48 }}>
+                  <Checkbox
+                    checked={selectedLeadIds.has(lead.id)}
+                    onChange={e => {
+                      const newSet = new Set(selectedLeadIds);
+                      if (e.target.checked) newSet.add(lead.id); else newSet.delete(lead.id);
+                      setSelectedLeadIds(newSet);
+                    }}
+                  />
+                </TableCell>
                 <TableCell sx={{ color: glassTheme.textPrimary }}>{lead.firstName} {lead.lastName}</TableCell>
                 <TableCell sx={{ color: glassTheme.textPrimary }}>{lead.company || '-'}</TableCell>
                 <TableCell sx={{ color: glassTheme.textPrimary }}>{lead.email || '-'}</TableCell>
@@ -1187,7 +1416,7 @@ function AdminDashboardContent() {
             ))}
             {leads.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                   <Typography sx={{ color: glassTheme.textSecondary }}>No leads yet. Create your first lead!</Typography>
                 </TableCell>
               </TableRow>
@@ -1195,6 +1424,94 @@ function AdminDashboardContent() {
           </TableBody>
         </Table>
       </TableContainer>
+      {/* Bulk Actions Toolbar */}
+      {selectedLeadIds.size > 0 && (
+        <Paper sx={{
+          mt: 2,
+          p: 2,
+          bgcolor: 'rgba(99,102,241,0.15)',
+          border: '1px solid rgba(99,102,241,0.4)',
+          borderRadius: 2,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          flexWrap: 'wrap',
+        }}>
+          <Typography variant="body2" sx={{ color: '#a5b4fc', fontWeight: 600 }}>
+            {selectedLeadIds.size} selected
+          </Typography>
+          <Button size="small" variant="outlined" onClick={e => setBulkStatusAnchor(e.currentTarget)}
+            sx={{ borderColor: 'rgba(99,102,241,0.5)', color: '#a5b4fc' }}>
+            Change Status
+          </Button>
+          <Menu anchorEl={bulkStatusAnchor} open={Boolean(bulkStatusAnchor)} onClose={() => setBulkStatusAnchor(null)}>
+            {STATUSES.map(s => (
+              <MenuItem key={s} onClick={() => {
+                selectedLeadIds.forEach(id => updateLeadStatus(id, s));
+                setSelectedLeadIds(new Set());
+                setBulkStatusAnchor(null);
+              }}>{s.replace(/_/g, ' ')}</MenuItem>
+            ))}
+          </Menu>
+          <Button size="small" variant="outlined" onClick={e => setBulkServiceAnchor(e.currentTarget)}
+            sx={{ borderColor: 'rgba(99,102,241,0.5)', color: '#a5b4fc' }}>
+            Assign Services
+          </Button>
+          <Menu anchorEl={bulkServiceAnchor} open={Boolean(bulkServiceAnchor)} onClose={() => setBulkServiceAnchor(null)}>
+            {services.map(s => (
+              <MenuItem key={s.id} onClick={async () => {
+                for (const leadId of selectedLeadIds) {
+                  await fetch('/api/admin/leads/' + leadId + '/services', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ serviceIds: [s.id] }),
+                  }).catch(() => {});
+                }
+                fetchLeads();
+                setSelectedLeadIds(new Set());
+                setBulkServiceAnchor(null);
+              }}>{s.icon} {s.name}</MenuItem>
+            ))}
+          </Menu>
+          <Button size="small" variant="outlined" startIcon={<FileDownload />} onClick={() => {
+            const selected = leads.filter((l: any) => selectedLeadIds.has(l.id));
+            const csv = [
+              'Name,Company,Email,Phone,Status,Stage,Created,Services',
+              ...selected.map((l: any) => [
+                `${l.firstName || ''} ${l.lastName || ''}`.trim(),
+                l.company || '',
+                l.email || '',
+                l.phone || '',
+                l.status,
+                l.status,
+                new Date(l.createdAt).toISOString().split('T')[0],
+                `"${(l.leadServices || []).map((ls: any) => ls.service?.name).filter(Boolean).join(', ')}"`,
+              ].join(','))
+            ].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'leads-export.csv'; a.click();
+            URL.revokeObjectURL(url);
+          }} sx={{ borderColor: 'rgba(16,185,129,0.5)', color: '#10b981' }}>
+            Export CSV
+          </Button>
+          <Button size="small" variant="outlined" startIcon={<Delete />} onClick={async () => {
+            if (!confirm(`Delete ${selectedLeadIds.size} leads? This cannot be undone.`)) return;
+            for (const id of selectedLeadIds) {
+              await fetch(`/api/admin/leads?leadId=${id}`, { method: 'DELETE' });
+            }
+            setSelectedLeadIds(new Set());
+            fetchLeads();
+          }} sx={{ borderColor: 'rgba(239,68,68,0.5)', color: '#ef4444' }}>
+            Delete
+          </Button>
+          <IconButton size="small" onClick={() => setSelectedLeadIds(new Set())} sx={{ ml: 'auto', color: glassTheme.textSecondary }}>
+            <Close fontSize="small" />
+          </IconButton>
+        </Paper>
+      )}
+      </>
       )}
 
       {/* New Lead Dialog */}
