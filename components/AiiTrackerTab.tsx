@@ -105,7 +105,7 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
   // CSV Import
   const [importOpen, setImportOpen] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ success: number; errors: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ success: number; errors: number; skipped?: number } | null>(null);
   
   // Deal detail drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -255,7 +255,7 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
         body: JSON.stringify({ leads: rows }),
       });
       const data = await res.json();
-      setImportResult({ success: data.results?.success || 0, errors: data.results?.errors || 0 });
+      setImportResult({ success: data.results?.success || 0, errors: data.results?.errors || 0, skipped: data.results?.skipped || 0 });
     } catch (err) {
       console.error('Import error:', err);
     } finally {
@@ -647,6 +647,7 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
             {importResult && (
               <Box mt={2}>
                 <Chip label={`${importResult.success} imported`} color="success" sx={{ mr: 1 }} />
+                {(importResult.skipped ?? 0) > 0 && <Chip label={`${importResult.skipped} skipped (existing)`} color="warning" sx={{ mr: 1 }} />}
                 {importResult.errors > 0 && <Chip label={`${importResult.errors} errors`} color="error" />}
               </Box>
             )}
