@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
         clientEmail: body.clientEmail,
         clientPhone: body.clientPhone,
         leadId: body.leadId,
+        clientId: body.clientId,
         lineItems: body.lineItems,
         subtotal,
         taxRate,

@@ -70,12 +70,16 @@ model Lead {
   bookingPageUrl   String?
   bookingEnabled   Boolean  @default(true)
   portalPin        String?
-  
+
+  // Client conversion tracking
+  convertedToClientAt DateTime?
+  convertedToClientId String?
+
   // Timestamps
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // Relations
+  // Relations (kept on Lead for transition period)
   positions       Position[]
   availability   Availability?
   serviceSelection ServiceSelection?
@@ -94,6 +98,43 @@ model Lead {
   escalations    Escalation[]
   invoices      Invoice[]
   outreachLogs   AiiOutreachLog[]
+  client         Client?  // Link to converted Client record
+}
+
+// Client Model - Paying clients (converted from Leads)
+model Client {
+  id              String       @id @default(cuid())
+  leadId          String?      @unique  // Link to original Lead
+  lead            Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  company         String?
+  firstName       String?
+  lastName        String?
+  email           String?
+  phone           String?
+  status          ClientStatus @default(PROSPECT)
+  clientTier      ClientTier   @default(TIER_C)
+  convertedAt     DateTime     @default(now())
+  stripeCustomerId String?
+  billingAddress  String?
+  billingCity     String?
+  billingState    String?
+  billingZip      String?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations - all billing/contract relations live on Client
+  contracts      Contract[]
+  payments      Payment[]
+  subscriptions Subscription[]
+  invoices      Invoice[]
+  proposals     Proposal[]
+  projectTimeline ProjectTimeline?
+  tasks         Task[]
+  clientRequests ClientRequest[]
+  calendarEvents CalendarEvent[]
+  bookingSlots   BookingSlot[]
+  escalations    Escalation[]
 }
 
 enum LeadStatus {
@@ -109,6 +150,19 @@ enum LeadStatus {
   ASSESSMENT_PROPOSAL
   NEGOTIATION
   SIGNED
+}
+
+enum ClientStatus {
+  PROSPECT
+  ACTIVE
+  CHURNED
+  ON_HOLD
+}
+
+enum ClientTier {
+  TIER_A
+  TIER_B
+  TIER_C
 }
 
 // Work History from LinkedIn/Apollo
@@ -232,8 +286,10 @@ model LeadService {
 // Proposal - Admin-created custom proposals for clients
 model Proposal {
   id          String   @id @default(cuid())
-  leadId      String
-  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId      String?
+  lead        Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  clientId    String?
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   status      ProposalStatus @default(DRAFT)
   notes       String?  // Admin notes for client (explanation of services)
   adminNotes  String?  // Internal admin notes (not shown to client)
@@ -281,8 +337,10 @@ model ProposalService {
 // Contract signing
 model Contract {
   id             String   @id @default(cuid())
-  leadId         String
-  lead           Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId         String?
+  lead           Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  clientId       String?
+  client         Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   signedAt       DateTime?
   signatureName  String?
   ipAddress      String?
@@ -296,8 +354,10 @@ model Contract {
 // Payment tracking
 model Payment {
   id              String   @id @default(cuid())
-  leadId          String
-  lead            Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId          String?
+  lead            Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  clientId        String?
+  client          Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   stripeSessionId String?
   stripeSubscriptionId String?  // For recurring subscriptions
   amount          Int      // in cents
@@ -325,8 +385,10 @@ enum PaymentStatus {
 // Subscription model for recurring billing
 model Subscription {
   id                  String   @id @default(cuid())
-  leadId              String
-  lead                Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId              String?
+  lead                Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  clientId            String?
+  client              Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   stripeSubscriptionId String  @unique  // Stripe subscription ID
   stripeCustomerId    String?
   status              SubscriptionStatus @default(ACTIVE)
@@ -357,8 +419,10 @@ enum BillingInterval {
 // Project timeline with milestones
 model ProjectTimeline {
   id         String   @id @default(cuid())
-  leadId     String   @unique
-  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId     String?  @unique
+  lead       Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  clientId   String?  @unique
+  client     Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   milestones Json     // Array of {title, description, status, dueDate, completedAt}
   
   createdAt  DateTime @default(now())
@@ -368,8 +432,10 @@ model ProjectTimeline {
 // Client requests/messages
 model ClientRequest {
   id        String   @id @default(cuid())
-  leadId    String
-  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId    String?
+  lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  clientId  String?
+  client    Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   subject   String
   message   String
   status    RequestStatus @default(OPEN)
@@ -387,8 +453,10 @@ enum RequestStatus {
 // Task management per lead
 model Task {
   id          String     @id @default(cuid())
-  leadId      String
-  lead        Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId      String?
+  lead        Lead?      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  clientId    String?
+  client      Client?    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   title       String
   description String?
   assignee    String?    // Admin email or role
@@ -468,6 +536,8 @@ model CalendarEvent {
   attendees     String?  // JSON string of attendee emails
   leadId        String?  // Optional link to a lead
   lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  clientId      String?
+  client        Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   createdBy     String   @default("portal")
   outlookEventId String? // Microsoft Graph calendar event ID for sync
   
@@ -478,8 +548,10 @@ model CalendarEvent {
 // Booking slots for client scheduling
 model BookingSlot {
   id            String   @id @default(cuid())
-  leadId        String
-  lead          Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId        String?
+  lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  clientId      String?
+  client        Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   date          String   // YYYY-MM-DD
   startTime     String   // HH:MM
   endTime       String   // HH:MM
@@ -501,6 +573,8 @@ model Escalation {
   clientEmail   String?
   leadId        String?  // Optional link to existing lead
   lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  clientId      String?
+  client        Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   
   // Escalation details
   priority      EscalationPriority @default(STANDARD)
@@ -559,6 +633,8 @@ model Invoice {
   clientPhone   String?
   leadId        String?  // Optional link to existing lead
   lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  clientId      String?
+  client        Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   
   // Line items stored as JSON
   lineItems     Json     // [{description, quantity, unitPrice, total}]

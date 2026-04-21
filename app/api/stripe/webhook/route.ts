@@ -78,6 +78,52 @@ export async function POST(request: NextRequest) {
             onboardingCompleted: true,
           },
         });
+
+        // Auto-convert: if lead has a paid payment and isn't already a client, create Client record
+        try {
+          const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+          if (lead && !lead.convertedToClientAt) {
+            const client = await prisma.client.create({
+              data: {
+                leadId: lead.id,
+                company: lead.company,
+                firstName: lead.firstName,
+                lastName: lead.lastName,
+                email: lead.email,
+                phone: lead.phone,
+                status: 'ACTIVE',
+                clientTier: lead.aiiTier === 'A' ? 'TIER_A' : lead.aiiTier === 'B' ? 'TIER_B' : 'TIER_C',
+                stripeCustomerId: customerId || lead.stripeCustomerId || undefined,
+                convertedAt: new Date(),
+              },
+            });
+
+            // Mark lead as converted
+            await prisma.lead.update({
+              where: { id: leadId },
+              data: {
+                convertedToClientAt: new Date(),
+                convertedToClientId: client.id,
+              },
+            });
+
+            // Migrate the payment to the new client
+            await prisma.payment.updateMany({
+              where: { leadId, status: 'PAID' },
+              data: { clientId: client.id },
+            });
+
+            // Migrate any existing subscription
+            await prisma.subscription.updateMany({
+              where: { leadId },
+              data: { clientId: client.id },
+            });
+
+            console.log(`Auto-converted lead ${leadId} to client ${client.id}`);
+          }
+        } catch (convErr: any) {
+          console.error('Auto-convert error (non-fatal):', convErr.message);
+        }
       }
       break;
     }

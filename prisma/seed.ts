@@ -444,16 +444,16 @@ async function main() {
     }
   }
   console.log(`✅ Seeded ${AIIO_SERVICES.length} AIIO services`)
-}
 
-main()
-  .catch((e) => {
-    console.error(e)
-    process.exit(1)
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+  // Client Tiers
+  const CLIENT_TIERS = [
+    { id: 'TIER_A', name: 'Tier A - Enterprise', description: 'Full-service client with dedicated account manager, priority support, and custom solutions.' },
+    { id: 'TIER_B', name: 'Tier B - Growth', description: 'Active client with standard support and quarterly reviews.' },
+    { id: 'TIER_C', name: 'Tier C - Starter', description: 'Entry-level client with self-service and basic support.' },
+  ]
+
+  console.log(`✅ Client tiers defined: ${CLIENT_TIERS.map(t => t.id).join(', ')}`)
+}
 
 main()
   .catch((e) => {

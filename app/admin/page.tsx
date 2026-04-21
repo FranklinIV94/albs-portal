@@ -23,6 +23,7 @@ import {
 import ProgressTracker from '@/components/ProgressTracker';
 import ChatPanel from '@/components/ChatPanel';
 import AiiTrackerTab from '@/components/AiiTrackerTab';
+import ClientsTab from '@/components/ClientsTab';
 
 interface ClientRequest {
   id: string;
@@ -990,6 +991,7 @@ function AdminDashboardContent() {
           <Tab label="AI Services" />
           <Tab label="Payroll" />
           <Tab label="📋 All Invoices" />
+          <Tab label="👥 Clients" />
           <Tab label="📊 Pipeline" />
           <Tab label="🤖 AIIO Tracker" />
           {analytics && <Tab label="📈 Analytics" />}
@@ -1088,8 +1090,13 @@ function AdminDashboardContent() {
         </Box>
       )}
 
-      {/* Pipeline Board Tab (tab === 4) */}
+      {/* Clients Tab (tab === 4) */}
       {tab === 4 && (
+        <ClientsTab />
+      )}
+
+      {/* Pipeline Board Tab (tab === 5) */}
+      {tab === 5 && (
         <Box sx={{ p: 3 }}>
           {/* Pipeline Filters */}
           <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
@@ -1230,13 +1237,13 @@ function AdminDashboardContent() {
         </Box>
       )}
 
-      {/* AIIO Tracker Tab (tab === 5) */}
-      {tab === 5 && (
+      {/* AIIO Tracker Tab (tab === 6) */}
+      {tab === 6 && (
         <AiiTrackerTab leads={leads} glassTheme={glassTheme} />
       )}
 
-      {/* Analytics Tab (tab >= 6) */}
-      {tab >= 6 && analytics ? (
+      {/* Analytics Tab (tab >= 7) */}
+      {tab >= 7 && analytics ? (
         <Box sx={{ p: 3 }}>
           <Typography variant="h5" sx={{ color: glassTheme.textPrimary, mb: 3 }}>
             📊 Analytics Dashboard
