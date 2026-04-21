@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { sendOnboardingEmail } from '@/lib/email'
-import { getResend } from '@/lib/email'
 
 const WEBHOOK_SECRET = process.env.INTAKE_WEBHOOK_SECRET
 
