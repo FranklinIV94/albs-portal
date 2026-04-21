@@ -11,9 +11,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'leads array required' }, { status: 400 });
     }
 
-    const results = { success: 0, errors: 0, created: [] as any[], errorsList: [] as any[] };
+    const results = { success: 0, errors: 0, skipped: 0, created: [] as any[], errorsList: [] as any[] };
+
+    // Deduplicate: build a set of existing (company+website) pairs
+    const existingLeads = await prisma.lead.findMany({
+      where: { aiiScore: { not: null } },
+      select: { id: true, company: true, aiiWebsite: true },
+    });
+    const existingKeys = new Set(
+      existingLeads
+        .map(l => [l.company || '', l.aiiWebsite || ''])
+        .filter(([c, w]) => c || w)
+        .map(([c, w]) => `${c.trim().toLowerCase()}||${(w || '').trim().toLowerCase()}`)
+    );
 
     for (const row of leads) {
+      // Skip duplicates by company + website
+      const companyKey = (row.company || row['Business Name'] || '').trim().toLowerCase();
+      const websiteKey = (row.aiiWebsite || row.Website || '').trim().replace(/^https?:\/\//, '').toLowerCase();
+      const dedupKey = `${companyKey}||${websiteKey}`;
+      if (companyKey && existingKeys.has(dedupKey)) {
+        results.skipped = (results.skipped || 0) + 1;
+        continue;
+      }
+
       try {
         const token = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
         const lead = await prisma.lead.create({
