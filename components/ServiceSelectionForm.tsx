@@ -217,6 +217,50 @@ const MARKETING_SERVICES = [
   }
 ];
 
+// OPSEC Services
+const OPSEC_SERVICES = [
+  {
+    id: 'opsec-discovery-report',
+    name: 'Digital Footprint Discovery',
+    price: '$1,499',
+    description: 'Comprehensive OSINT scan: exposed emails, phones, addresses, social accounts, breach exposures, and data broker listings. Includes actionable report.',
+    icon: '🔍',
+    category: 'opsec'
+  },
+  {
+    id: 'opsec-hardening',
+    name: 'Account Hardening',
+    price: '$999',
+    description: 'Secure critical accounts: 2FA enforcement, privacy lockdown, recovery cleanup, suspicious access review.',
+    icon: '🔐',
+    category: 'opsec'
+  },
+  {
+    id: 'opsec-breach-response',
+    name: 'Breach Exposure Remediation',
+    price: '$799',
+    description: 'Data appeared in a breach. We file removal requests across top 20 data broker sites and monitor for changes.',
+    icon: '🛡️',
+    category: 'opsec'
+  },
+  {
+    id: 'opsec-executive',
+    name: 'Executive Protection Bundle',
+    price: '$4,999',
+    description: 'Discovery + Hardening + Breach Response + social engineering assessment + family exposure review + 90-day monitoring.',
+    icon: '🛡️',
+    category: 'opsec'
+  },
+  {
+    id: 'opsec-monthly',
+    name: 'Ongoing Monitoring',
+    price: '$299/mo',
+    description: 'Monthly OSINT monitoring. Alerts when new exposures appear, new breach data surfaces, or info shows up in broker listings.',
+    icon: '👁️',
+    category: 'opsec'
+  }
+];
+
 export default function ServiceSelectionForm({ initialData, onNext, onBack }: ServiceSelectionFormProps) {
   const [selected, setSelected] = useState<string[]>(() => {
     if (!initialData) return [];
@@ -244,7 +288,8 @@ export default function ServiceSelectionForm({ initialData, onNext, onBack }: Se
     ...SERVICES.map(s => s.id),
     ...TAX_SERVICES.map(s => s.id),
     ...PAYROLL_BOOKKEEPING_SERVICES.map(s => s.id),
-    ...MARKETING_SERVICES.map(s => s.id)
+    ...MARKETING_SERVICES.map(s => s.id),
+    ...OPSEC_SERVICES.map(s => s.id)
   ];
 
   const handleToggle = (id: string) => {
@@ -259,6 +304,7 @@ export default function ServiceSelectionForm({ initialData, onNext, onBack }: Se
     TAX_SERVICES.forEach(s => data[s.id] = selected.includes(s.id));
     PAYROLL_BOOKKEEPING_SERVICES.forEach(s => data[s.id] = selected.includes(s.id));
     MARKETING_SERVICES.forEach(s => data[s.id] = selected.includes(s.id));
+    OPSEC_SERVICES.forEach(s => data[s.id] = selected.includes(s.id));
     data.notes = notes;
     
     // Include AI intake fields if any AI service is selected
@@ -275,7 +321,7 @@ export default function ServiceSelectionForm({ initialData, onNext, onBack }: Se
   };
 
   const totalEstimate = selected.reduce((acc, id) => {
-    const service = [...SERVICES, ...TAX_SERVICES, ...PAYROLL_BOOKKEEPING_SERVICES, ...MARKETING_SERVICES].find(s => s.id === id);
+    const service = [...SERVICES, ...TAX_SERVICES, ...PAYROLL_BOOKKEEPING_SERVICES, ...MARKETING_SERVICES, ...OPSEC_SERVICES].find(s => s.id === id);
     if (service) {
       if (service.price.includes('–')) {
         const [min] = service.price.replace('$', '').replace('Starting at ', '').replace('Contact for pricing', '0').split('–').map(n => parseInt(n) * 1000 || 0);
@@ -468,6 +514,56 @@ export default function ServiceSelectionForm({ initialData, onNext, onBack }: Se
                         {service.icon} {service.name}
                       </Typography>
                       <Chip label={service.price} color="warning" variant="outlined" size="small" />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      {service.description}
+                    </Typography>
+                  </Box>
+                }
+                sx={{ m: 0, width: '100%', alignItems: 'flex-start' }}
+              />
+            </Paper>
+          ))}
+        </Stack>
+
+        {/* OPSEC Services */}
+        <Divider sx={{ my: 3 }} />
+        <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+          🛡️ Digital Privacy & OpSec
+        </Typography>
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <Typography variant="body2">
+            For executives, business owners, and high-value individuals. Protect your digital presence before adversaries find your exposed data.
+          </Typography>
+        </Alert>
+        <Stack spacing={2} sx={{ mb: 4 }}>
+          {OPSEC_SERVICES.map((service) => (
+            <Paper 
+              key={service.id}
+              variant="outlined"
+              sx={{ 
+                p: 2, 
+                borderColor: selected.includes(service.id) ? 'error.main' : 'divider',
+                bgcolor: selected.includes(service.id) ? 'error.50' : 'transparent',
+                cursor: 'pointer'
+              }}
+              onClick={() => handleToggle(service.id)}
+            >
+              <FormControlLabel
+                control={
+                  <Checkbox 
+                    checked={selected.includes(service.id)}
+                    onChange={() => handleToggle(service.id)}
+                    sx={{ color: 'error.main' }}
+                  />
+                }
+                label={
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography fontWeight="bold">
+                        {service.icon} {service.name}
+                      </Typography>
+                      <Chip label={service.price} color="error" variant="outlined" size="small" />
                     </Box>
                     <Typography variant="body2" color="text.secondary">
                       {service.description}

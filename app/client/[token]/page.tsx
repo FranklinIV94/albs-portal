@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Box, Typography, Card, CardContent, Chip, Stack, Button, CircularProgress, Alert, TextField, InputAdornment, IconButton } from '@mui/material';
 import ChatPanel from '@/components/ChatPanel';
+import UploadPanel from '@/components/UploadPanel';
 import ProgressTracker from '@/components/ProgressTracker';
 import { Lock, Visibility, VisibilityOff } from '@mui/icons-material';
 
@@ -263,7 +264,16 @@ export default function ClientPortal() {
 
         {/* Chat Panel */}
         <Card sx={{ bgcolor: themeStyles.cardBg, border: `1px solid ${themeStyles.cardBorder}`, borderRadius: 4, mb: 3 }}>
-          <ChatPanel token={token as string} />
+          <Box sx={{ p: 2 }}>
+            <ChatPanel token={token as string} />
+          </Box>
+        </Card>
+
+        {/* Document Upload */}
+        <Card sx={{ bgcolor: themeStyles.cardBg, border: `1px solid ${themeStyles.cardBorder}`, borderRadius: 4, mb: 3 }}>
+          <Box sx={{ p: 2 }}>
+            <UploadPanel token={token as string} />
+          </Box>
         </Card>
 
         <Alert sx={{ bgcolor: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)', mb: 3 }}>
@@ -271,6 +281,12 @@ export default function ClientPortal() {
         </Alert>
 
         <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap" gap={2}>
+          {lead?.onboardingCompleted && (
+            <Button variant="contained" href={`https://vercel-app-sooty-nu.vercel.app/book/${token}`}
+              sx={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff', px: 4, py: 1.5, borderRadius: 3, fontWeight: 'bold' }}>
+              📅 Book a Consultation
+            </Button>
+          )}
           <Button variant="contained" href="/calendar"
             sx={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff', px: 4, py: 1.5, borderRadius: 3, fontWeight: 'bold' }}>
             📅 Book a Meeting

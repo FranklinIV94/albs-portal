@@ -45,6 +45,8 @@ model Lead {
   stripeCustomerId  String?
   
   // Client portal PIN (6 digits)
+  bookingPageUrl   String?
+  bookingEnabled   Boolean  @default(true)
   portalPin        String?
   
   // Timestamps
@@ -66,6 +68,7 @@ model Lead {
   adminNotes         Note[]
   activityLogs  ActivityLog[]
   calendarEvents CalendarEvent[]
+  bookingSlots   BookingSlot[]
   escalations    Escalation[]
   invoices      Invoice[]
 }
@@ -179,6 +182,7 @@ enum ServiceCategory {
   CONSULTING
   MARKETING
   INSURANCE
+  OPSEC
 }
 
 // Lead-Service junction (for custom pricing)
@@ -439,6 +443,21 @@ model CalendarEvent {
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// Booking slots for client scheduling
+model BookingSlot {
+  id            String   @id @default(cuid())
+  leadId        String
+  lead          Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  date          String   // YYYY-MM-DD
+  startTime     String   // HH:MM
+  endTime       String   // HH:MM
+  status        String   @default("available") // available|booked|blocked
+  bookedBy      String?  // token of booking client
+  createdAt     DateTime @default(now())
+
+  @@unique([leadId, date, startTime])
 }
 
 // Escalations for Zo AI agent

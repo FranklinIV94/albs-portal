@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { createOutlookEvent, deleteOutlookEvent } from '@/lib/graph';
+import { createNadeshaOutlookEvent } from '@/lib/graph-nadesha';
 
 const prisma = new PrismaClient();
 
@@ -47,11 +48,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, start, end, type, description, location, attendeeEmail, attendees } = body;
+    const { title, start, end, type, description, location, attendeeEmail, attendees, leadToken } = body;
 
     // Validate required fields
     if (!title || !start || !end) {
       return NextResponse.json({ error: 'Title, start, and end are required' }, { status: 400 });
+    }
+
+    // Resolve leadToken to leadId if provided
+    let leadId: string | null = body.leadId || null;
+    if (!leadId && leadToken) {
+      try {
+        const lead = await prisma.lead.findUnique({ where: { token: leadToken } });
+        if (lead) leadId = lead.id;
+      } catch (e) { /* non-fatal */ }
     }
 
     const event = await prisma.calendarEvent.create({
@@ -64,6 +74,7 @@ export async function POST(request: NextRequest) {
         status: 'confirmed',
         location: location || 'Virtual',
         attendees: attendees ? JSON.stringify(attendees) : JSON.stringify([attendeeEmail].filter(Boolean)),
+        leadId,
         createdBy: 'portal',
       },
     });
@@ -82,11 +93,31 @@ export async function POST(request: NextRequest) {
       
       if (outlookResult.success) {
         outlookEventId = outlookResult.eventId || null;
-        console.log('Created Outlook event:', outlookEventId);
+        console.log('Created Outlook event for Franklin:', outlookEventId);
       }
     } catch (outlookError: any) {
-      console.error('Outlook sync failed (non-fatal):', outlookError.message);
-      // Continue - don't fail the booking if Outlook fails
+      console.error('Franklin Outlook sync failed (non-fatal):', outlookError.message);
+    }
+
+    // Also create event in Nadesha's Outlook calendar
+    try {
+      const nadeshaResult = await createNadeshaOutlookEvent({
+        subject: title,
+        body: description || undefined,
+        start: new Date(start),
+        end: new Date(end),
+        attendeeEmail: attendeeEmail || (attendees ? JSON.parse(attendees)[0] : undefined),
+        attendeeName: body.attendeeName || undefined,
+        location: location || 'Virtual',
+      });
+      
+      if (nadeshaResult.success) {
+        console.log('Created Outlook event for Nadesha:', nadeshaResult.eventId);
+      } else {
+        console.error('Nadesha Outlook sync failed:', nadeshaResult.error);
+      }
+    } catch (nadeshaError: any) {
+      console.error('Nadesha Outlook sync failed (non-fatal):', nadeshaError.message);
     }
 
     return NextResponse.json({
