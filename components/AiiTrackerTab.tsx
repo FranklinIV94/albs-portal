@@ -211,9 +211,9 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
       const data = await res.json();
       if (data.success) {
         setAiiLeads(prev => prev.map(l => l.id === leadId ? { ...l, aiiPipelineStage: 'NOT_STARTED' } : l));
-        setInboxSelected(prev => { const next = new Set(prev); next.delete(leadId); return next; });
+        setInboxSelected((prev: Set<string>) => { const next = new Set(prev); next.delete(leadId); return next; });
         setSnackbar({ open: true, message: 'Lead approved and moved to pipeline', severity: 'success' });
-        if (drawerLead?.id === leadId) setDrawerLead(prev => ({ ...prev, aiiPipelineStage: 'NOT_STARTED' }));
+        if (drawerLead?.id === leadId) setDrawerLead((prev: any) => ({ ...prev, aiiPipelineStage: 'NOT_STARTED' }));
       } else {
         setSnackbar({ open: true, message: data.error || 'Failed to approve', severity: 'error' });
       }
@@ -232,9 +232,9 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
       const data = await res.json();
       if (data.success) {
         setAiiLeads(prev => prev.map(l => l.id === leadId ? { ...l, aiiPipelineStage: 'REJECTED' } : l));
-        setInboxSelected(prev => { const next = new Set(prev); next.delete(leadId); return next; });
+        setInboxSelected((prev: Set<string>) => { const next = new Set(prev); next.delete(leadId); return next; });
         setSnackbar({ open: true, message: 'Lead rejected', severity: 'info' });
-        if (drawerLead?.id === leadId) setDrawerLead(prev => ({ ...prev, aiiPipelineStage: 'REJECTED' }));
+        if (drawerLead?.id === leadId) setDrawerLead((prev: any) => ({ ...prev, aiiPipelineStage: 'REJECTED' }));
       } else {
         setSnackbar({ open: true, message: data.error || 'Failed to reject', severity: 'error' });
       }
@@ -244,12 +244,12 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
   };
 
   const handleBulkApprove = async () => {
-    for (const id of inboxSelected) await handleApprove(id);
+    for (const id of Array.from(inboxSelected)) await handleApprove(id);
     setInboxSelected(new Set());
   };
 
   const handleBulkReject = async () => {
-    for (const id of inboxSelected) await handleReject(id);
+    for (const id of Array.from(inboxSelected)) await handleReject(id);
     setInboxSelected(new Set());
   };
 
