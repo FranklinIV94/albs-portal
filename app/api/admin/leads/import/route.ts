@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
             aiiWebsite: row.aiiWebsite || row.Website || null,
             aiiOperationalSignals: row.aiiOperationalSignals || row['Top Gap / Operational Signals'] || null,
             aiiAssignedTo: row.aiiAssignedTo || row['Assigned To'] || null,
-            aiiPipelineStage: row.aiiPipelineStage || row.Stage || null,
+            aiiPipelineStage: 'PENDING_APPROVAL',
             aiiProduct: row.aiiProduct || row.Product || null,
             aiiFee: row.aiiFee != null ? parseInt(row.aiiFee) : row.Fee != null ? Math.round(parseFloat(row.Fee) * 100) : null,
             aiiProbability: row.aiiProbability != null ? parseInt(row.aiiProbability) : row.Probability != null ? parseInt(row.Probability) : null,

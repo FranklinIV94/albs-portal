@@ -5,29 +5,34 @@ import {
   Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Button, TextField, FormControl, InputLabel, Select, MenuItem, Chip, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Stack, Divider,
-  Tabs, Tab, Drawer, Menu, CircularProgress, Grid
+  Tabs, Tab, Drawer, Menu, CircularProgress, Grid, Checkbox, Snackbar, Alert
 } from '@mui/material';
 import {
   CloudUpload, Search, Refresh, Visibility, Add,
-  Email, Phone, Voicemail, Message, Close, ArrowForward
+  Email, Phone, Voicemail, Message, Close, ArrowForward, CheckCircle, Cancel
 } from '@mui/icons-material';
 
-const AIIO_STAGES = ['NOT_STARTED', 'OUTREACH', 'DISCOVERY', 'ASSESSMENT_PROPOSAL', 'NEGOTIATION', 'SIGNED'];
+const AIIO_STAGES = ['PENDING_APPROVAL', 'NOT_STARTED', 'OUTREACH', 'DISCOVERY', 'ASSESSMENT_PROPOSAL', 'NEGOTIATION', 'SIGNED', 'REJECTED'];
+const PIPELINE_STAGES = AIIO_STAGES.filter(s => s !== 'PENDING_APPROVAL' && s !== 'REJECTED');
 const STAGE_COLORS: Record<string, string> = {
+  PENDING_APPROVAL: 'rgba(234,179,8,0.2)',
   NOT_STARTED: 'rgba(148,163,184,0.2)',
   OUTREACH: 'rgba(99,102,241,0.2)',
   DISCOVERY: 'rgba(168,85,247,0.2)',
   ASSESSMENT_PROPOSAL: 'rgba(245,158,11,0.2)',
   NEGOTIATION: 'rgba(249,115,22,0.2)',
   SIGNED: 'rgba(16,185,129,0.2)',
+  REJECTED: 'rgba(239,68,68,0.2)',
 };
 const STAGE_CHIP_COLORS: Record<string, 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info'> = {
+  PENDING_APPROVAL: 'warning',
   NOT_STARTED: 'default',
   OUTREACH: 'primary',
   DISCOVERY: 'secondary',
   ASSESSMENT_PROPOSAL: 'warning',
   NEGOTIATION: 'warning',
   SIGNED: 'success',
+  REJECTED: 'error',
 };
 const CHANNEL_ICONS: Record<string, string> = {
   email: '📧',
@@ -88,6 +93,7 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
   const [tierFilter, setTierFilter] = useState('');
   const [industryFilter, setIndustryFilter] = useState('');
   const [stageFilter, setStageFilter] = useState('');
+  const [showPending, setShowPending] = useState(true);
   
   // Outreach Log filters
   const [logSearch, setLogSearch] = useState('');
@@ -102,6 +108,10 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
   const [logForm, setLogForm] = useState({ channel: 'email', outcome: '', notes: '', nextAction: '', nextDate: '' });
   const [savingLog, setSavingLog] = useState(false);
   
+  // Inbox selection
+  const [inboxSelected, setInboxSelected] = useState<Set<string>>(new Set());
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({ open: false, message: '', severity: 'info' });
+
   // CSV Import
   const [importOpen, setImportOpen] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -140,8 +150,13 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
     if (subTab === 2) fetchOutreachLogs();
   }, [subTab, channelFilter, outcomeFilter, dateFrom, dateTo]);
 
+  const pendingLeads = useMemo(() => aiiLeads.filter(l => l.aiiPipelineStage === 'PENDING_APPROVAL'), [aiiLeads]);
+  const pendingCount = pendingLeads.length;
+
   const filteredLeads = useMemo(() => {
     return aiiLeads.filter(l => {
+      // Hide PENDING_APPROVAL and REJECTED unless showPending is on
+      if (!showPending && (l.aiiPipelineStage === 'PENDING_APPROVAL' || l.aiiPipelineStage === 'REJECTED')) return false;
       const matchSearch = !search || (l.company || '').toLowerCase().includes(search.toLowerCase()) ||
         (l.firstName || '').toLowerCase().includes(search.toLowerCase()) ||
         (l.lastName || '').toLowerCase().includes(search.toLowerCase());
@@ -150,14 +165,14 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
       const matchStage = !stageFilter || l.aiiPipelineStage === stageFilter;
       return matchSearch && matchTier && matchIndustry && matchStage;
     });
-  }, [aiiLeads, search, tierFilter, industryFilter, stageFilter]);
+  }, [aiiLeads, search, tierFilter, industryFilter, stageFilter, showPending]);
 
   const notContactedCount = useMemo(() => {
     return aiiLeads.filter(l => !l.aiiNextAction && !l.aiiPipelineStage).length;
   }, [aiiLeads]);
 
   const pipelineMetrics = useMemo(() => {
-    const active = aiiLeads.filter(l => l.aiiPipelineStage && l.aiiPipelineStage !== 'NOT_STARTED');
+    const active = aiiLeads.filter(l => l.aiiPipelineStage && l.aiiPipelineStage !== 'NOT_STARTED' && l.aiiPipelineStage !== 'PENDING_APPROVAL' && l.aiiPipelineStage !== 'REJECTED');
     const totalValue = active.reduce((sum, l) => sum + (l.aiiWeightedValue || 0), 0);
     const outreachCount = aiiLeads.filter(l => l.aiiPipelineStage === 'OUTREACH').length;
     const now = new Date();
@@ -167,7 +182,7 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
   }, [aiiLeads]);
 
   const pipelineStages = useMemo(() => {
-    return AIIO_STAGES.map(stage => ({
+    return PIPELINE_STAGES.map(stage => ({
       stage,
       leads: aiiLeads.filter(l => l.aiiPipelineStage === stage || (!l.aiiPipelineStage && stage === 'NOT_STARTED')),
     }));
@@ -181,6 +196,62 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
       return matchSearch;
     });
   }, [outreachLogs, logSearch]);
+
+  const handleApprove = async (leadId: string) => {
+    try {
+      const res = await fetch('/api/admin/leads/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAiiLeads(prev => prev.map(l => l.id === leadId ? { ...l, aiiPipelineStage: 'NOT_STARTED' } : l));
+        setInboxSelected(prev => { const next = new Set(prev); next.delete(leadId); return next; });
+        setSnackbar({ open: true, message: 'Lead approved and moved to pipeline', severity: 'success' });
+        if (drawerLead?.id === leadId) setDrawerLead(prev => ({ ...prev, aiiPipelineStage: 'NOT_STARTED' }));
+      } else {
+        setSnackbar({ open: true, message: data.error || 'Failed to approve', severity: 'error' });
+      }
+    } catch (err) {
+      setSnackbar({ open: true, message: 'Error approving lead', severity: 'error' });
+    }
+  };
+
+  const handleReject = async (leadId: string, reason?: string) => {
+    try {
+      const res = await fetch('/api/admin/leads/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId, reason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAiiLeads(prev => prev.map(l => l.id === leadId ? { ...l, aiiPipelineStage: 'REJECTED' } : l));
+        setInboxSelected(prev => { const next = new Set(prev); next.delete(leadId); return next; });
+        setSnackbar({ open: true, message: 'Lead rejected', severity: 'info' });
+        if (drawerLead?.id === leadId) setDrawerLead(prev => ({ ...prev, aiiPipelineStage: 'REJECTED' }));
+      } else {
+        setSnackbar({ open: true, message: data.error || 'Failed to reject', severity: 'error' });
+      }
+    } catch (err) {
+      setSnackbar({ open: true, message: 'Error rejecting lead', severity: 'error' });
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    for (const id of inboxSelected) {
+      await handleApprove(id);
+    }
+    setInboxSelected(new Set());
+  };
+
+  const handleBulkReject = async () => {
+    for (const id of inboxSelected) {
+      await handleReject(id);
+    }
+    setInboxSelected(new Set());
+  };
 
   const handleLogTouch = async () => {
     if (!selectedLead) return;
@@ -219,7 +290,6 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
         body: JSON.stringify({ leadId: lead.id, aiiPipelineStage: newStage }),
       });
       setStageAnchor(null);
-      // Refresh would happen via parent
     } catch (err) {
       console.error('Error advancing stage:', err);
     }
@@ -299,6 +369,7 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
           <Tab label="Lead List" />
           <Tab label="Pipeline" />
           <Tab label="Outreach Log" />
+          <Tab label={`📥 Inbox${pendingCount > 0 ? ` (${pendingCount})` : ''}`} />
         </Tabs>
       </Box>
 
@@ -329,9 +400,14 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
               <InputLabel>Stage</InputLabel>
               <Select value={stageFilter} label="Stage" onChange={e => setStageFilter(e.target.value)}>
                 <MenuItem value="">All</MenuItem>
-                {AIIO_STAGES.map(s => <MenuItem key={s} value={s}>{s.replace(/_/g, ' ')}</MenuItem>)}
+                {PIPELINE_STAGES.map(s => <MenuItem key={s} value={s}>{s.replace(/_/g, ' ')}</MenuItem>)}
+                <MenuItem value="PENDING_APPROVAL">Pending Approval</MenuItem>
+                <MenuItem value="REJECTED">Rejected</MenuItem>
               </Select>
             </FormControl>
+            <Button variant={showPending ? 'contained' : 'outlined'} size="small" onClick={() => setShowPending(!showPending)}>
+              {showPending ? '✓ Pending' : '✗ Pending'}
+            </Button>
             <Button variant="outlined" size="small" onClick={() => setImportOpen(true)} startIcon={<CloudUpload />}>
               Import CSV
             </Button>
@@ -574,6 +650,111 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
         </Box>
       )}
 
+      {/* INBOX SUB-TAB */}
+      {subTab === 3 && (
+        <Box>
+          {inboxSelected.size > 0 && (
+            <Stack direction="row" spacing={2} mb={2} alignItems="center">
+              <Typography variant="body2" sx={{ color: glassTheme.textSecondary }}>
+                {inboxSelected.size} selected
+              </Typography>
+              <Button variant="contained" color="success" size="small" startIcon={<CheckCircle />} onClick={handleBulkApprove}>
+                Approve All Selected
+              </Button>
+              <Button variant="contained" color="error" size="small" startIcon={<Cancel />} onClick={handleBulkReject}>
+                Reject All Selected
+              </Button>
+            </Stack>
+          )}
+          <TableContainer component={Paper} sx={{ bgcolor: glassTheme.tableBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ bgcolor: glassTheme.tableHeaderBg }}>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }} padding="checkbox">
+                    <Checkbox
+                      indeterminate={inboxSelected.size > 0 && inboxSelected.size < pendingLeads.length}
+                      checked={pendingLeads.length > 0 && inboxSelected.size === pendingLeads.length}
+                      onChange={e => {
+                        if (e.target.checked) setInboxSelected(new Set(pendingLeads.map(l => l.id)));
+                        else setInboxSelected(new Set());
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Score</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Tier</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Company</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Industry</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>City/State</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Owner</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Outreach Hook</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {pendingLeads.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} sx={{ color: glassTheme.textSecondary, textAlign: 'center', py: 4 }}>
+                      No pending leads. Import a CSV to queue new leads for approval.
+                    </TableCell>
+                  </TableRow>
+                ) : pendingLeads.map(lead => (
+                  <TableRow key={lead.id} sx={{ '&:hover': { bgcolor: glassTheme.tableRowHover }, borderBottom: `1px solid ${glassTheme.tableRowBorder}` }}>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={inboxSelected.has(lead.id)}
+                        onChange={e => {
+                          setInboxSelected(prev => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(lead.id);
+                            else next.delete(lead.id);
+                            return next;
+                          });
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {lead.aiiScore != null && (
+                        <Chip label={lead.aiiScore} size="small"
+                          sx={{ bgcolor: getScoreColor(lead.aiiScore), color: '#fff', fontWeight: 700 }} />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {lead.aiiTier && (
+                        <Chip label={lead.aiiTier} size="small"
+                          sx={{ bgcolor: getTierColor(lead.aiiTier), color: '#fff', fontWeight: 700, minWidth: 32 }} />
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ color: glassTheme.textPrimary }}>
+                      <Typography variant="body2" fontWeight={500}>{lead.company || '-'}</Typography>
+                      {lead.firstName && <Typography variant="caption" sx={{ color: glassTheme.textSecondary }}>{lead.firstName} {lead.lastName}</Typography>}
+                    </TableCell>
+                    <TableCell sx={{ color: glassTheme.textSecondary }}>{lead.aiiIndustry?.replace('_', ' ') || '-'}</TableCell>
+                    <TableCell sx={{ color: glassTheme.textSecondary }}>
+                      {[lead.aiiCity, lead.aiiState].filter(Boolean).join(', ') || '-'}
+                    </TableCell>
+                    <TableCell sx={{ color: glassTheme.textSecondary }}>{lead.aiiAssignedTo || '-'}</TableCell>
+                    <TableCell sx={{ color: glassTheme.textSecondary, maxWidth: 200 }}>
+                      {lead.aiiOutreachHook ? (
+                        <Tooltip title={lead.aiiOutreachHook}>
+                          <Typography variant="caption" noWrap>{lead.aiiOutreachHook}</Typography>
+                        </Tooltip>
+                      ) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={0.5}>
+                        <IconButton size="small" onClick={() => openDealDrawer(lead)} title="View"><Visibility fontSize="small" /></IconButton>
+                        <IconButton size="small" color="success" onClick={() => handleApprove(lead.id)} title="Approve"><CheckCircle fontSize="small" /></IconButton>
+                        <IconButton size="small" color="error" onClick={() => handleReject(lead.id)} title="Reject"><Cancel fontSize="small" /></IconButton>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      )}
+
       {/* LOG TOUCH DIALOG */}
       <Dialog open={logTouchOpen} onClose={() => setLogTouchOpen(false)} maxWidth="sm" fullWidth
         PaperProps={{ sx: { bgcolor: glassTheme.cardBg, border: `1px solid ${glassTheme.cardBorder}` } }}>
@@ -671,6 +852,18 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
               <IconButton onClick={() => setDrawerOpen(false)}><Close /></IconButton>
             </Stack>
             <Divider sx={{ mb: 2 }} />
+
+            {/* Approval actions for pending leads */}
+            {drawerLead.aiiPipelineStage === 'PENDING_APPROVAL' && (
+              <Stack direction="row" spacing={1} mb={2}>
+                <Button variant="contained" color="success" fullWidth startIcon={<CheckCircle />} onClick={() => handleApprove(drawerLead.id)}>
+                  Approve
+                </Button>
+                <Button variant="contained" color="error" fullWidth startIcon={<Cancel />} onClick={() => handleReject(drawerLead.id)}>
+                  Reject
+                </Button>
+              </Stack>
+            )}
             
             {/* Stage */}
             <FormControl fullWidth size="small" sx={{ mb: 2 }}>
@@ -754,6 +947,14 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
           </Box>
         )}
       </Drawer>
+
+      {/* SNACKBAR */}
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

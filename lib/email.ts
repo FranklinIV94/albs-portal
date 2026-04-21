@@ -415,6 +415,105 @@ export async function sendInvoiceEmail({
   }
 }
 
+export async function sendContractEmail({
+  to,
+  clientName,
+  contractUrl,
+  serviceName,
+  totalFee,
+  depositAmount,
+}: {
+  to: string;
+  clientName: string;
+  contractUrl: string;
+  serviceName: string;
+  totalFee: number;
+  depositAmount: number;
+}) {
+  const resend = getResend();
+  if (!resend) return { success: false, error: 'Resend not configured' };
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="content-width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f0f4f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f4f8; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); padding: 36px 40px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">Your ALBS Service Agreement</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px;">
+              <p style="color: #1f2937; font-size: 17px; line-height: 1.7; margin: 0 0 24px;">Dear ${clientName},</p>
+              <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+                Your service agreement for <strong>${serviceName}</strong> is ready for your review and signature.
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; overflow: hidden; margin: 24px 0; border: 1px solid #e2e8f0;">
+                <tr><td style="padding: 12px 20px; border-bottom: 1px solid #e2e8f0;"><span style="color: #6b7280; font-size: 13px;">Service</span><br><strong style="color: #1f2937;">${serviceName}</strong></td></tr>
+                <tr><td style="padding: 12px 20px; border-bottom: 1px solid #e2e8f0;"><span style="color: #6b7280; font-size: 13px;">Total Fee</span><br><strong style="color: #1f2937;">$${(totalFee / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></td></tr>
+                <tr><td style="padding: 12px 20px;"><span style="color: #6b7280; font-size: 13px;">Deposit Due at Signing</span><br><strong style="color: #1e3a8a;">$${(depositAmount / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></td></tr>
+              </table>
+              <p style="color: #374151; font-size: 15px; line-height: 1.7; margin: 0 0 8px;"><strong>Next steps:</strong></p>
+              <ol style="color: #4b5563; font-size: 14px; line-height: 1.8; margin: 0 0 28px; padding-left: 20px;">
+                <li style="margin-bottom: 8px;">Review your service agreement</li>
+                <li style="margin-bottom: 8px;">Sign electronically by typing your name</li>
+                <li>Submit your deposit payment</li>
+              </ol>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 32px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${contractUrl}" style="display: inline-block; background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 10px; font-weight: 600; font-size: 15px;">
+                      Review &amp; Sign Agreement →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="color: #6b7280; font-size: 14px; margin: 0 0 8px;">If you have any questions, please contact us:</p>
+              <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                <strong>Email:</strong> <a href="mailto:support@simplifyingbusinesses.com" style="color: #2563eb;">support@simplifyingbusinesses.com</a><br>
+                <strong>Phone:</strong> (561) 589-8900
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f8fafc; padding: 20px 40px; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 11px; margin: 0; text-align: center; line-height: 1.6;">
+                © ${new Date().getFullYear()} All Lines Business Solutions • Punta Gorda, FL<br>
+                <a href="mailto:support@simplifyingbusinesses.com" style="color: #9ca3af;">support@simplifyingbusinesses.com</a> • (561) 589-8900
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  try {
+    const data = await resend.emails.send({
+      from: 'onboarding@simplifyingbusinesses.com',
+      to: [to],
+      reply_to: 'support@simplifyingbusinesses.com',
+      subject: 'Your ALBS Service Agreement — Action Required',
+      html,
+    });
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('Resend error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function sendConfirmationEmail({
   to,
   firstName,
