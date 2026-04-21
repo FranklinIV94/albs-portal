@@ -124,7 +124,7 @@ export async function sendOnboardingEmail({
               </p>
               <p style="color: #6b7280; font-size: 14px; margin: 0;">
                 <strong>Email:</strong> <a href="mailto:support@simplifyingbusinesses.com" style="color: #2563eb;">support@simplifyingbusinesses.com</a><br>
-                <strong>Phone:</strong> (561) 479-8624
+                <strong>Phone:</strong> (561) 589-8900
               </p>
 
             </td>
@@ -149,7 +149,7 @@ export async function sendOnboardingEmail({
             <td style="background-color: #f8fafc; padding: 20px 40px; border-top: 1px solid #e5e7eb;">
               <p style="color: #9ca3af; font-size: 11px; margin: 0; text-align: center; line-height: 1.6;">
                 © ${new Date().getFullYear()} All Lines Business Solutions • Punta Gorda, FL<br>
-                <a href="mailto:support@simplifyingbusinesses.com" style="color: #9ca3af;">support@simplifyingbusinesses.com</a> • (561) 479-8624
+                <a href="mailto:support@simplifyingbusinesses.com" style="color: #9ca3af;">support@simplifyingbusinesses.com</a> • (561) 589-8900
               </p>
             </td>
           </tr>
