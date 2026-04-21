@@ -880,7 +880,8 @@ function AdminDashboardContent() {
                     const res = await fetch('/api/admin/leads', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ ...quickAdd, sendWelcomeEmail: false }),
+                      body: JSON.stringify({ ...quickAdd }),
+                      // sendWelcomeEmail defaults to true in API — email goes out automatically
                     });
                     const data = await res.json();
                     if (data.success) {
@@ -1333,7 +1334,7 @@ function AdminDashboardContent() {
                       return true;
                     });
                     if (e.target.checked) {
-                      setSelectedLeadIds(new Set([...selectedLeadIds, ...visible.map((l: any) => l.id)]));
+                      setSelectedLeadIds(new Set([...Array.from(selectedLeadIds), ...visible.map((l: any) => l.id)]));
                     } else {
                       const newSet = new Set(selectedLeadIds);
                       visible.forEach((l: any) => newSet.delete(l.id));
@@ -1460,7 +1461,7 @@ function AdminDashboardContent() {
           <Menu anchorEl={bulkServiceAnchor} open={Boolean(bulkServiceAnchor)} onClose={() => setBulkServiceAnchor(null)}>
             {services.map(s => (
               <MenuItem key={s.id} onClick={async () => {
-                for (const leadId of selectedLeadIds) {
+                for (const leadId of Array.from(selectedLeadIds)) {
                   await fetch('/api/admin/leads/' + leadId + '/services', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1498,7 +1499,7 @@ function AdminDashboardContent() {
           </Button>
           <Button size="small" variant="outlined" startIcon={<Delete />} onClick={async () => {
             if (!confirm(`Delete ${selectedLeadIds.size} leads? This cannot be undone.`)) return;
-            for (const id of selectedLeadIds) {
+            for (const id of Array.from(selectedLeadIds)) {
               await fetch(`/api/admin/leads?leadId=${id}`, { method: 'DELETE' });
             }
             setSelectedLeadIds(new Set());
