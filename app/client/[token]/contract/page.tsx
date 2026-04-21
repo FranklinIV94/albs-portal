@@ -148,13 +148,13 @@ export default function ContractPage() {
         {/* Steps indicator */}
         <Stepper activeStep={isPaid ? 2 : isSigned ? 1 : 0} sx={{ mb: 4 }}>
           <Step>
-            <StepLabel StepIconComponent={Description}>Review &amp; Sign</StepLabel>
+            <StepLabel >Review &amp; Sign</StepLabel>
           </Step>
           <Step>
-            <StepLabel StepIconComponent={Payment}>Pay Deposit</StepLabel>
+            <StepLabel >Pay Deposit</StepLabel>
           </Step>
           <Step>
-            <StepLabel StepIconComponent={CheckCircle}>Onboarded</StepLabel>
+            <StepLabel >Onboarded</StepLabel>
           </Step>
         </Stepper>
 

@@ -153,6 +153,48 @@ export default function ClientsTab() {
     fetchClientDetail(client.id);
   };
 
+  const [generatingContract, setGeneratingContract] = useState(false);
+  const [sendingDeposit, setSendingDeposit] = useState(false);
+
+  const handleGenerateContract = async () => {
+    if (!selectedClient) return;
+    setGeneratingContract(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/clients/${selectedClient.id}/contract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ depositPercent: 50 }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      fetchClientDetail(selectedClient.id);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setGeneratingContract(false);
+    }
+  };
+
+  const handleSendDepositInvoice = async () => {
+    if (!selectedClient) return;
+    setSendingDeposit(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/clients/${selectedClient.id}/deposit-checkout`, { method: 'POST' });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      if (data.checkoutUrl) {
+        await navigator.clipboard.writeText(data.checkoutUrl);
+        alert('Deposit checkout URL copied to clipboard!');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSendingDeposit(false);
+    }
+  };
+
   return (
     <Box>
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -357,6 +399,25 @@ export default function ClientsTab() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Contract Actions */}
+              <Card sx={{ bgcolor: glassTheme.cardBg, border: `1px solid ${glassTheme.cardBorder}` }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ color: glassTheme.textPrimary, mb: 2 }}>
+                    <Assignment sx={{ verticalAlign: 'middle', mr: 0.5 }} /> Service Agreement
+                  </Typography>
+                  <Stack direction="row" spacing={1}>
+                    <Button variant="contained" size="small" onClick={handleGenerateContract} disabled={generatingContract}
+                      sx={{ bgcolor: '#1e3a8a', '&:hover': { bgcolor: '#1e40af' } }}>
+                      {generatingContract ? 'Generating...' : '📄 Generate Contract'}
+                    </Button>
+                    <Button variant="outlined" size="small" onClick={handleSendDepositInvoice} disabled={sendingDeposit}
+                      sx={{ borderColor: '#16a34a', color: '#16a34a', '&:hover': { borderColor: '#15803d' } }}>
+                      {sendingDeposit ? 'Creating...' : '💳 Send Deposit Invoice'}
+                    </Button>
+                  </Stack>
+                </CardContent>
+              </Card>
 
               {/* Contracts */}
               <Card sx={{ bgcolor: glassTheme.cardBg, border: `1px solid ${glassTheme.cardBorder}` }}>

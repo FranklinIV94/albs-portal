@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import {
   CloudUpload, Search, Refresh, Visibility, Add,
-  Email, Phone, Voicemail, Message, Close, ArrowForward, CheckCircle, Cancel
+  Email, Phone, Voicemail, Message, Close, ArrowForward, CheckCircle, Cancel, MoreVert
 } from '@mui/icons-material';
 
 const AIIO_STAGES = ['PENDING_APPROVAL', 'NOT_STARTED', 'OUTREACH', 'DISCOVERY', 'ASSESSMENT_PROPOSAL', 'NEGOTIATION', 'SIGNED', 'REJECTED'];
@@ -52,15 +52,19 @@ const OUTCOME_COLORS: Record<string, 'success' | 'warning' | 'error' | 'default'
 };
 const INDUSTRIES = ['pool_service', 'hvac', 'electrical', 'roofing', 'lawn', 'carpentry', 'other'];
 
+function capitalize(str: string): string {
+  if (!str) return '';
+  return str.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 function getScoreColor(score: number) {
-  if (score >= 80) return '#10b981';
-  if (score >= 70) return '#f59e0b';
-  return '#ef4444';
+  if (score >= 80) return '#16a34a';  // solid green
+  if (score >= 70) return '#d97706';  // solid amber
+  return '#dc2626';                   // solid red
 }
 function getTierColor(tier: string) {
-  if (tier === 'A') return '#10b981';
-  if (tier === 'B') return '#f59e0b';
-  return 'rgba(148,163,184,0.6)';
+  if (tier === 'A') return '#16a34a';  // solid green
+  if (tier === 'B') return '#d97706';  // solid amber
+  return '#6b7280';                    // solid gray
 }
 
 interface AiiTrackerTabProps {
@@ -87,41 +91,41 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
   const [aiiLeads, setAiiLeads] = useState<any[]>([]);
   const [outreachLogs, setOutreachLogs] = useState<AiiOutreachLog[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Lead List filters
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState('');
   const [industryFilter, setIndustryFilter] = useState('');
-  const [stageFilter, setStageFilter] = useState('');
   const [showPending, setShowPending] = useState(true);
-  
+
   // Outreach Log filters
   const [logSearch, setLogSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState('');
   const [outcomeFilter, setOutcomeFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  
+
   // Dialogs
   const [logTouchOpen, setLogTouchOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [logForm, setLogForm] = useState({ channel: 'email', outcome: '', notes: '', nextAction: '', nextDate: '' });
   const [savingLog, setSavingLog] = useState(false);
-  
+
   // Inbox selection
   const [inboxSelected, setInboxSelected] = useState<Set<string>>(new Set());
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({ open: false, message: '', severity: 'info' });
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<null | HTMLElement>(null);
+  const [actionMenuLead, setActionMenuLead] = useState<any>(null);
 
   // CSV Import
   const [importOpen, setImportOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ success: number; errors: number; skipped?: number } | null>(null);
-  
+
   // Deal detail drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerLead, setDrawerLead] = useState<any>(null);
   const [drawerLogs, setDrawerLogs] = useState<any[]>([]);
-  const [stageAnchor, setStageAnchor] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
     const filtered = leads.filter(l => l.aiiTier || l.aiiScore || l.aiiPipelineStage || l.aiiOutreachHook);
@@ -153,23 +157,23 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
   const pendingLeads = useMemo(() => aiiLeads.filter(l => l.aiiPipelineStage === 'PENDING_APPROVAL'), [aiiLeads]);
   const pendingCount = pendingLeads.length;
 
+  // Header metrics
+  const tierACount = useMemo(() => aiiLeads.filter(l => l.aiiTier === 'A').length, [aiiLeads]);
+  const tierBCount = useMemo(() => aiiLeads.filter(l => l.aiiTier === 'B').length, [aiiLeads]);
+  const tierCCount = useMemo(() => aiiLeads.filter(l => l.aiiTier === 'C').length, [aiiLeads]);
+  const notContactedCount = useMemo(() => aiiLeads.filter(l => !l.aiiNextAction && !l.aiiPipelineStage).length, [aiiLeads]);
+
   const filteredLeads = useMemo(() => {
     return aiiLeads.filter(l => {
-      // Hide PENDING_APPROVAL and REJECTED unless showPending is on
       if (!showPending && (l.aiiPipelineStage === 'PENDING_APPROVAL' || l.aiiPipelineStage === 'REJECTED')) return false;
       const matchSearch = !search || (l.company || '').toLowerCase().includes(search.toLowerCase()) ||
         (l.firstName || '').toLowerCase().includes(search.toLowerCase()) ||
         (l.lastName || '').toLowerCase().includes(search.toLowerCase());
       const matchTier = !tierFilter || l.aiiTier === tierFilter;
       const matchIndustry = !industryFilter || l.aiiIndustry === industryFilter;
-      const matchStage = !stageFilter || l.aiiPipelineStage === stageFilter;
-      return matchSearch && matchTier && matchIndustry && matchStage;
+      return matchSearch && matchTier && matchIndustry;
     });
-  }, [aiiLeads, search, tierFilter, industryFilter, stageFilter, showPending]);
-
-  const notContactedCount = useMemo(() => {
-    return aiiLeads.filter(l => !l.aiiNextAction && !l.aiiPipelineStage).length;
-  }, [aiiLeads]);
+  }, [aiiLeads, search, tierFilter, industryFilter, showPending]);
 
   const pipelineMetrics = useMemo(() => {
     const active = aiiLeads.filter(l => l.aiiPipelineStage && l.aiiPipelineStage !== 'NOT_STARTED' && l.aiiPipelineStage !== 'PENDING_APPROVAL' && l.aiiPipelineStage !== 'REJECTED');
@@ -213,7 +217,7 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
       } else {
         setSnackbar({ open: true, message: data.error || 'Failed to approve', severity: 'error' });
       }
-    } catch (err) {
+    } catch {
       setSnackbar({ open: true, message: 'Error approving lead', severity: 'error' });
     }
   };
@@ -234,23 +238,25 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
       } else {
         setSnackbar({ open: true, message: data.error || 'Failed to reject', severity: 'error' });
       }
-    } catch (err) {
+    } catch {
       setSnackbar({ open: true, message: 'Error rejecting lead', severity: 'error' });
     }
   };
 
   const handleBulkApprove = async () => {
-    for (const id of inboxSelected) {
-      await handleApprove(id);
-    }
+    for (const id of inboxSelected) await handleApprove(id);
     setInboxSelected(new Set());
   };
 
   const handleBulkReject = async () => {
-    for (const id of inboxSelected) {
-      await handleReject(id);
-    }
+    for (const id of inboxSelected) await handleReject(id);
     setInboxSelected(new Set());
+  };
+
+  const openActionMenu = (e: React.MouseEvent<HTMLElement>, lead: any) => {
+    e.stopPropagation();
+    setActionMenuLead(lead);
+    setActionMenuAnchor(e.currentTarget);
   };
 
   const handleLogTouch = async () => {
@@ -279,19 +285,6 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
       console.error('Error logging touch:', err);
     } finally {
       setSavingLog(false);
-    }
-  };
-
-  const handleAdvanceStage = async (lead: any, newStage: string) => {
-    try {
-      await fetch('/api/admin/leads', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: lead.id, aiiPipelineStage: newStage }),
-      });
-      setStageAnchor(null);
-    } catch (err) {
-      console.error('Error advancing stage:', err);
     }
   };
 
@@ -353,9 +346,7 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
         body: JSON.stringify({ leadId: drawerLead.id, [field]: value }),
       });
       const data = await res.json();
-      if (data.success) {
-        setDrawerLead((prev: any) => ({ ...prev, [field]: value }));
-      }
+      if (data.success) setDrawerLead((prev: any) => ({ ...prev, [field]: value }));
     } catch (err) {
       console.error('Error updating field:', err);
     }
@@ -376,122 +367,139 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
       {/* LEAD LIST SUB-TAB */}
       {subTab === 0 && (
         <Box>
-          <Stack direction="row" spacing={2} mb={3} flexWrap="wrap">
-            <TextField size="small" placeholder="Search name/company..." value={search}
+          {/* Header metrics row */}
+          <Stack direction="row" spacing={1.5} mb={2.5} flexWrap="wrap">
+            <Chip label={`Total: ${aiiLeads.length}`} size="medium" sx={{ bgcolor: 'rgba(99,102,241,0.15)', color: '#a5b4fc', fontWeight: 600, fontSize: 13 }} />
+            <Chip label={`Tier A: ${tierACount}`} size="medium" sx={{ bgcolor: 'rgba(22,163,74,0.15)', color: '#4ade80', fontWeight: 600, fontSize: 13 }} />
+            <Chip label={`Tier B: ${tierBCount}`} size="medium" sx={{ bgcolor: 'rgba(217,119,6,0.15)', color: '#fbbf24', fontWeight: 600, fontSize: 13 }} />
+            <Chip label={`Tier C: ${tierCCount}`} size="medium" sx={{ bgcolor: 'rgba(107,114,128,0.15)', color: '#9ca3af', fontWeight: 600, fontSize: 13 }} />
+            {notContactedCount > 0 && (
+              <Chip label={`Not Contacted: ${notContactedCount}`} size="medium" sx={{ bgcolor: 'rgba(168,85,247,0.15)', color: '#c084fc', fontWeight: 600, fontSize: 13 }} />
+            )}
+          </Stack>
+
+          {/* Filter controls */}
+          <Stack direction="row" spacing={1.5} mb={2.5} flexWrap="wrap" alignItems="center">
+            <TextField size="small" placeholder="Search name/company…" value={search}
               onChange={e => setSearch(e.target.value)} sx={{ minWidth: 200 }}
-              InputProps={{ startAdornment: <Search fontSize="small" sx={{ mr: 1, color: 'rgba(240,240,248,0.5)' }} /> }} />
+              InputProps={{ startAdornment: <Search fontSize="small" sx={{ mr: 1, color: 'rgba(240,240,248,0.4)' }} /> }} />
             <FormControl size="small" sx={{ minWidth: 100 }}>
               <InputLabel>Tier</InputLabel>
               <Select value={tierFilter} label="Tier" onChange={e => setTierFilter(e.target.value)}>
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="A">A</MenuItem>
-                <MenuItem value="B">B</MenuItem>
-                <MenuItem value="C">C</MenuItem>
+                <MenuItem value="">All Tiers</MenuItem>
+                <MenuItem value="A">Tier A</MenuItem>
+                <MenuItem value="B">Tier B</MenuItem>
+                <MenuItem value="C">Tier C</MenuItem>
               </Select>
             </FormControl>
             <FormControl size="small" sx={{ minWidth: 140 }}>
               <InputLabel>Industry</InputLabel>
               <Select value={industryFilter} label="Industry" onChange={e => setIndustryFilter(e.target.value)}>
-                <MenuItem value="">All</MenuItem>
-                {INDUSTRIES.map(ind => <MenuItem key={ind} value={ind}>{ind.replace('_', ' ')}</MenuItem>)}
-              </Select>
-            </FormControl>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel>Stage</InputLabel>
-              <Select value={stageFilter} label="Stage" onChange={e => setStageFilter(e.target.value)}>
-                <MenuItem value="">All</MenuItem>
-                {PIPELINE_STAGES.map(s => <MenuItem key={s} value={s}>{s.replace(/_/g, ' ')}</MenuItem>)}
-                <MenuItem value="PENDING_APPROVAL">Pending Approval</MenuItem>
-                <MenuItem value="REJECTED">Rejected</MenuItem>
+                <MenuItem value="">All Industries</MenuItem>
+                {INDUSTRIES.map(ind => <MenuItem key={ind} value={ind}>{capitalize(ind)}</MenuItem>)}
               </Select>
             </FormControl>
             <Button variant={showPending ? 'contained' : 'outlined'} size="small" onClick={() => setShowPending(!showPending)}>
-              {showPending ? '✓ Pending' : '✗ Pending'}
+              {showPending ? '✓ Show Pending' : '✗ Show Pending'}
             </Button>
-            <Button variant="outlined" size="small" onClick={() => setImportOpen(true)} startIcon={<CloudUpload />}>
+            <Box sx={{ flex: 1 }} />
+            <Button variant="outlined" size="small" onClick={() => setImportOpen(true)} startIcon={<CloudUpload />} sx={{ borderColor: '#6366f1', color: '#a5b4fc' }}>
               Import CSV
-            </Button>
-            <Button variant={stageFilter === 'NOT_STARTED' && !search && !tierFilter ? 'contained' : 'outlined'}
-              size="small" onClick={() => setStageFilter(stageFilter === 'NOT_STARTED' ? '' : 'NOT_STARTED')}>
-              Not Contacted ({notContactedCount})
             </Button>
           </Stack>
 
+          {/* Table */}
           <TableContainer component={Paper} sx={{ bgcolor: glassTheme.tableBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2 }}>
-            <Table size="small">
+            <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: glassTheme.tableHeaderBg }}>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Tier</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Score</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Business</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Industry</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Location</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Owner</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Outreach Hook</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Stage</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Actions</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Tier</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Score</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Business</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Industry</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Location</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Outreach Hook</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredLeads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} sx={{ color: glassTheme.textSecondary, textAlign: 'center', py: 4 }}>
+                    <TableCell colSpan={7} sx={{ color: glassTheme.textSecondary, textAlign: 'center', py: 6 }}>
                       No AIIO leads found. Import a CSV to get started.
                     </TableCell>
                   </TableRow>
                 ) : filteredLeads.map(lead => (
-                  <TableRow key={lead.id} sx={{ '&:hover': { bgcolor: glassTheme.tableRowHover }, borderBottom: `1px solid ${glassTheme.tableRowBorder}` }}>
-                    <TableCell>
+                  <TableRow
+                    key={lead.id}
+                    sx={{
+                      '&:hover': { bgcolor: 'rgba(99,102,241,0.06)' },
+                      borderBottom: `1px solid ${glassTheme.tableRowBorder}`,
+                      cursor: 'pointer',
+                      transition: 'background-color 0.15s',
+                    }}
+                    onClick={() => openDealDrawer(lead)}
+                  >
+                    <TableCell sx={{ py: 1.75 }}>
                       {lead.aiiTier && (
-                        <Chip label={lead.aiiTier} size="small"
-                          sx={{ bgcolor: getTierColor(lead.aiiTier), color: '#fff', fontWeight: 700, minWidth: 32 }} />
+                        <Box sx={{
+                          width: 28, height: 28, borderRadius: '50%',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          bgcolor: getTierColor(lead.aiiTier), color: '#fff',
+                          fontWeight: 700, fontSize: 13, fontFamily: 'monospace',
+                        }}>
+                          {lead.aiiTier}
+                        </Box>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ py: 1.75 }}>
                       {lead.aiiScore != null && (
-                        <Chip label={lead.aiiScore} size="small"
-                          sx={{ bgcolor: getScoreColor(lead.aiiScore), color: '#fff', fontWeight: 700 }} />
+                        <Box sx={{
+                          px: 1, py: 0.25, borderRadius: 1,
+                          bgcolor: getScoreColor(lead.aiiScore), color: '#fff',
+                          fontWeight: 700, fontSize: 12, display: 'inline-block',
+                          minWidth: 36, textAlign: 'center',
+                        }}>
+                          {lead.aiiScore}
+                        </Box>
                       )}
                     </TableCell>
-                    <TableCell sx={{ color: glassTheme.textPrimary }}>
-                      <Typography variant="body2" fontWeight={500}>{lead.company || '-'}</Typography>
-                      {lead.firstName && <Typography variant="caption" sx={{ color: glassTheme.textSecondary }}>{lead.firstName} {lead.lastName}</Typography>}
+                    <TableCell sx={{ color: glassTheme.textPrimary, py: 1.75 }}>
+                      <Typography variant="body2" fontWeight={500} sx={{ lineHeight: 1.4 }}>{lead.company || '-'}</Typography>
+                      {lead.firstName && (
+                        <Typography variant="caption" sx={{ color: glassTheme.textSecondary, lineHeight: 1.4 }}>
+                          {lead.firstName} {lead.lastName}
+                        </Typography>
+                      )}
                     </TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary }}>{lead.aiiIndustry?.replace('_', ' ') || '-'}</TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary }}>
+                    <TableCell sx={{ color: glassTheme.textSecondary, py: 1.75 }}>
+                      {capitalize(lead.aiiIndustry) || '-'}
+                    </TableCell>
+                    <TableCell sx={{ color: glassTheme.textSecondary, py: 1.75, whiteSpace: 'nowrap' }}>
                       {[lead.aiiCity, lead.aiiState].filter(Boolean).join(', ') || '-'}
                     </TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary }}>{lead.aiiAssignedTo || '-'}</TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary, maxWidth: 200 }}>
+                    <TableCell sx={{ py: 1.75 }}>
                       {lead.aiiOutreachHook ? (
-                        <Tooltip title={lead.aiiOutreachHook}>
-                          <Typography variant="caption" noWrap>{lead.aiiOutreachHook}</Typography>
+                        <Tooltip title={lead.aiiOutreachHook} arrow placement="top">
+                          <Typography variant="body2" noWrap sx={{ color: glassTheme.textSecondary, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'default' }}>
+                            {lead.aiiOutreachHook}
+                          </Typography>
                         </Tooltip>
-                      ) : '-'}
+                      ) : <Typography variant="body2" sx={{ color: glassTheme.textSecondary }}>—</Typography>}
                     </TableCell>
-                    <TableCell>
-                      {lead.aiiPipelineStage && (
-                        <Chip label={lead.aiiPipelineStage.replace(/_/g, ' ')} size="small"
-                          color={STAGE_CHIP_COLORS[lead.aiiPipelineStage]} variant="outlined" />
-                      )}
-                    </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ py: 1.75 }} onClick={e => e.stopPropagation()}>
                       <Stack direction="row" spacing={0.5}>
-                        <IconButton size="small" onClick={() => openDealDrawer(lead)}><Visibility fontSize="small" /></IconButton>
-                        <IconButton size="small" onClick={() => { setSelectedLead(lead); setLogTouchOpen(true); }}>
-                          <Add fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" onClick={e => { setSelectedLead(lead); setStageAnchor(e.currentTarget); }}>
-                          <ArrowForward fontSize="small" />
-                        </IconButton>
+                        <Tooltip title="View details"><IconButton size="small" onClick={() => openDealDrawer(lead)}><Visibility fontSize="small" /></IconButton></Tooltip>
+                        <Tooltip title="More actions"><IconButton size="small" onClick={e => openActionMenu(e, lead)}><MoreVert fontSize="small" /></IconButton></Tooltip>
                       </Stack>
-                      <Menu anchorEl={stageAnchor} open={Boolean(stageAnchor) && selectedLead?.id === lead.id}
-                        onClose={() => setStageAnchor(null)}>
-                        {AIIO_STAGES.map(s => (
-                          <MenuItem key={s} onClick={() => handleAdvanceStage(lead, s)} selected={lead.aiiPipelineStage === s}>
-                            {s.replace(/_/g, ' ')}
-                          </MenuItem>
-                        ))}
+                      <Menu anchorEl={actionMenuAnchor} open={Boolean(actionMenuAnchor) && actionMenuLead?.id === lead.id}
+                        onClose={() => { setActionMenuAnchor(null); setActionMenuLead(null); }}>
+                        <MenuItem onClick={() => { openDealDrawer(lead); setActionMenuAnchor(null); setActionMenuLead(null); }}>
+                          <Visibility fontSize="small" sx={{ mr: 1 }} /> View Details
+                        </MenuItem>
+                        <MenuItem onClick={() => { setSelectedLead(lead); setLogTouchOpen(true); setActionMenuAnchor(null); setActionMenuLead(null); }}>
+                          <Add fontSize="small" sx={{ mr: 1 }} /> Log Touch
+                        </MenuItem>
                       </Menu>
                     </TableCell>
                   </TableRow>
@@ -537,29 +545,56 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
           <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2 }}>
             {pipelineStages.map(({ stage, leads: stageLeads }) => (
               <Box key={stage} sx={{ minWidth: 260, maxWidth: 280 }}>
-                <Paper sx={{ p: 1.5, bgcolor: STAGE_COLORS[stage], borderRadius: 2, mb: 1 }}>
+                <Paper sx={{ p: 1.5, bgcolor: STAGE_COLORS[stage], borderRadius: 2, mb: 1.5 }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="subtitle2" fontWeight={600}>{stage.replace(/_/g, ' ')}</Typography>
-                    <Chip label={stageLeads.length} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: '#fff' }} />
+                    <Typography variant="subtitle2" fontWeight={600} sx={{ textTransform: 'capitalize' }}>
+                      {stage.replace(/_/g, ' ')}
+                    </Typography>
+                    <Box sx={{ px: 1, py: 0.25, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 12 }}>
+                      {stageLeads.length}
+                    </Box>
                   </Stack>
                 </Paper>
                 {stageLeads.map(lead => (
-                  <Paper key={lead.id} sx={{ p: 1.5, mb: 1, bgcolor: glassTheme.cardBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2, cursor: 'pointer' }}
+                  <Paper key={lead.id} sx={{
+                    p: 2, mb: 1.5, bgcolor: glassTheme.cardBg, border: `1px solid ${glassTheme.cardBorder}`,
+                    borderRadius: 2, cursor: 'pointer',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                    '&:hover': { borderColor: 'rgba(99,102,241,0.4)', boxShadow: '0 0 0 1px rgba(99,102,241,0.2)' },
+                  }}
                     onClick={() => openDealDrawer(lead)}>
-                    <Typography variant="body2" fontWeight={600} sx={{ color: glassTheme.textPrimary }}>{lead.company || 'Unknown'}</Typography>
-                    <Typography variant="caption" sx={{ color: glassTheme.textSecondary }}>{lead.aiiAssignedTo || 'Unassigned'}</Typography>
-                    <Stack direction="row" spacing={1} mt={0.5}>
-                      {lead.aiiFee && <Typography variant="caption" sx={{ color: '#10b981' }}>${(lead.aiiFee / 100).toLocaleString()}</Typography>}
-                      {lead.aiiProbability != null && <Typography variant="caption" sx={{ color: '#f59e0b' }}>{lead.aiiProbability}%</Typography>}
-                      {lead.aiiWeightedValue != null && <Typography variant="caption" sx={{ color: '#6366f1' }}>${(lead.aiiWeightedValue / 100).toLocaleString()}</Typography>}
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={0.5}>
+                      <Typography variant="body2" fontWeight={600} sx={{ color: glassTheme.textPrimary, lineHeight: 1.4, flex: 1, mr: 1 }}>
+                        {lead.company || 'Unknown'}
+                      </Typography>
+                      {lead.aiiTier && (
+                        <Box sx={{
+                          width: 22, height: 22, borderRadius: '50%',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          bgcolor: getTierColor(lead.aiiTier), color: '#fff',
+                          fontWeight: 700, fontSize: 11, flexShrink: 0,
+                        }}>
+                          {lead.aiiTier}
+                        </Box>
+                      )}
+                    </Stack>
+                    <Typography variant="caption" sx={{ color: glassTheme.textSecondary, display: 'block', mb: 0.75 }}>
+                      {lead.aiiAssignedTo || 'Unassigned'}
+                    </Typography>
+                    <Stack direction="row" spacing={1} mb={0.5}>
+                      {lead.aiiFee && <Typography variant="caption" sx={{ color: '#10b981', fontWeight: 600 }}>${(lead.aiiFee / 100).toLocaleString()}</Typography>}
+                      {lead.aiiProbability != null && <Typography variant="caption" sx={{ color: '#f59e0b', fontWeight: 600 }}>{lead.aiiProbability}%</Typography>}
+                      {lead.aiiWeightedValue != null && <Typography variant="caption" sx={{ color: '#6366f1', fontWeight: 600 }}>${(lead.aiiWeightedValue / 100).toLocaleString()}</Typography>}
                     </Stack>
                     {lead.aiiNextAction && (
-                      <Typography variant="caption" display="block" sx={{ color: glassTheme.textSecondary, mt: 0.5 }}>
-                        Next: {lead.aiiNextAction}
+                      <Typography variant="caption" display="block" sx={{ color: glassTheme.textSecondary, mt: 0.5, lineHeight: 1.4 }}>
+                        → {lead.aiiNextAction}
                       </Typography>
                     )}
                     {lead.aiiProduct && (
-                      <Chip label={lead.aiiProduct} size="small" variant="outlined" sx={{ mt: 0.5, fontSize: '10px' }} />
+                      <Box sx={{ mt: 0.75 }}>
+                        <Chip label={lead.aiiProduct} size="small" variant="outlined" sx={{ fontSize: '10px', height: 20 }} />
+                      </Box>
                     )}
                   </Paper>
                 ))}
@@ -572,18 +607,18 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
       {/* OUTREACH LOG SUB-TAB */}
       {subTab === 2 && (
         <Box>
-          <Stack direction="row" spacing={2} mb={3} flexWrap="wrap" alignItems="center">
-            <TextField size="small" placeholder="Search lead..." value={logSearch}
+          <Stack direction="row" spacing={1.5} mb={2.5} flexWrap="wrap" alignItems="center">
+            <TextField size="small" placeholder="Search lead…" value={logSearch}
               onChange={e => setLogSearch(e.target.value)} sx={{ minWidth: 180 }}
-              InputProps={{ startAdornment: <Search fontSize="small" sx={{ mr: 1, color: 'rgba(240,240,248,0.5)' }} /> }} />
+              InputProps={{ startAdornment: <Search fontSize="small" sx={{ mr: 1, color: 'rgba(240,240,248,0.4)' }} /> }} />
             <FormControl size="small" sx={{ minWidth: 120 }}>
               <InputLabel>Channel</InputLabel>
               <Select value={channelFilter} label="Channel" onChange={e => setChannelFilter(e.target.value)}>
                 <MenuItem value="">All</MenuItem>
-                <MenuItem value="email">Email</MenuItem>
-                <MenuItem value="phone">Phone</MenuItem>
-                <MenuItem value="voicemail">Voicemail</MenuItem>
-                <MenuItem value="linkedin">LinkedIn</MenuItem>
+                <MenuItem value="email">📧 Email</MenuItem>
+                <MenuItem value="phone">📞 Phone</MenuItem>
+                <MenuItem value="voicemail">📬 Voicemail</MenuItem>
+                <MenuItem value="linkedin">💬 LinkedIn</MenuItem>
               </Select>
             </FormControl>
             <FormControl size="small" sx={{ minWidth: 140 }}>
@@ -606,42 +641,56 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
           </Stack>
 
           <TableContainer component={Paper} sx={{ bgcolor: glassTheme.tableBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2 }}>
-            <Table size="small">
+            <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: glassTheme.tableHeaderBg }}>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Date</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Lead</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Channel</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Touch</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Outcome</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Notes</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Next Action</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Next Date</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Date</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Lead</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Channel</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Touch</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Outcome</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Notes</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Next Action</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Next Date</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}><CircularProgress size={24} /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 6 }}><CircularProgress size={24} /></TableCell></TableRow>
                 ) : filteredLogs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} sx={{ color: glassTheme.textSecondary, textAlign: 'center', py: 4 }}>No outreach logs found</TableCell>
+                    <TableCell colSpan={8} sx={{ color: glassTheme.textSecondary, textAlign: 'center', py: 6 }}>No outreach logs found</TableCell>
                   </TableRow>
                 ) : filteredLogs.map(log => (
-                  <TableRow key={log.id} sx={{ '&:hover': { bgcolor: glassTheme.tableRowHover }, borderBottom: `1px solid ${glassTheme.tableRowBorder}` }}>
-                    <TableCell sx={{ color: glassTheme.textSecondary }}>{new Date(log.date).toLocaleDateString()}</TableCell>
-                    <TableCell sx={{ color: glassTheme.textPrimary }}>
-                      <Typography variant="body2">{log.lead?.company || log.lead?.firstName || 'Unknown'}</Typography>
+                  <TableRow key={log.id} sx={{
+                    '&:hover': { bgcolor: 'rgba(99,102,241,0.06)' },
+                    borderBottom: `1px solid ${glassTheme.tableRowBorder}`,
+                    transition: 'background-color 0.15s',
+                  }}>
+                    <TableCell sx={{ color: glassTheme.textSecondary, py: 1.75 }}>{new Date(log.date).toLocaleDateString()}</TableCell>
+                    <TableCell sx={{ color: glassTheme.textPrimary, py: 1.75 }}>
+                      <Typography variant="body2" sx={{ lineHeight: 1.4 }}>{log.lead?.company || log.lead?.firstName || 'Unknown'}</Typography>
                     </TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary }}>{CHANNEL_ICONS[log.channel] || '📧'} {log.channel}</TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary }}>#{log.touchNum}</TableCell>
-                    <TableCell>
-                      {log.outcome && <Chip label={log.outcome.replace(/_/g, ' ')} size="small" color={OUTCOME_COLORS[log.outcome]} variant="outlined" />}
+                    <TableCell sx={{ color: glassTheme.textSecondary, py: 1.75 }}>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <span>{CHANNEL_ICONS[log.channel] || '📧'}</span>
+                        <span style={{ textTransform: 'capitalize' }}>{log.channel.replace('_', ' ')}</span>
+                      </Stack>
                     </TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary, maxWidth: 200 }}>
-                      {log.notes ? <Tooltip title={log.notes}><Typography variant="caption" noWrap>{log.notes}</Typography></Tooltip> : '-'}
+                    <TableCell sx={{ color: glassTheme.textSecondary, py: 1.75 }}>#{log.touchNum}</TableCell>
+                    <TableCell sx={{ py: 1.75 }}>
+                      {log.outcome && (
+                        <Chip label={log.outcome.replace(/_/g, ' ')} size="small"
+                          color={OUTCOME_COLORS[log.outcome]} variant="outlined" sx={{ textTransform: 'capitalize' }} />
+                      )}
                     </TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary }}>{log.nextAction || '-'}</TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary }}>{log.nextDate ? new Date(log.nextDate).toLocaleDateString() : '-'}</TableCell>
+                    <TableCell sx={{ py: 1.75 }}>
+                      {log.notes ? (
+                        <Tooltip title={log.notes} arrow><Typography variant="body2" noWrap sx={{ color: glassTheme.textSecondary, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'default' }}>{log.notes}</Typography></Tooltip>
+                      ) : <Typography variant="body2" sx={{ color: glassTheme.textSecondary }}>—</Typography>}
+                    </TableCell>
+                    <TableCell sx={{ color: glassTheme.textSecondary, py: 1.75 }}>{log.nextAction || '-'}</TableCell>
+                    <TableCell sx={{ color: glassTheme.textSecondary, py: 1.75 }}>{log.nextDate ? new Date(log.nextDate).toLocaleDateString() : '-'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -654,53 +703,59 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
       {subTab === 3 && (
         <Box>
           {inboxSelected.size > 0 && (
-            <Stack direction="row" spacing={2} mb={2} alignItems="center">
+            <Stack direction="row" spacing={1.5} mb={2} alignItems="center">
               <Typography variant="body2" sx={{ color: glassTheme.textSecondary }}>
                 {inboxSelected.size} selected
               </Typography>
               <Button variant="contained" color="success" size="small" startIcon={<CheckCircle />} onClick={handleBulkApprove}>
-                Approve All Selected
+                Approve All
               </Button>
               <Button variant="contained" color="error" size="small" startIcon={<Cancel />} onClick={handleBulkReject}>
-                Reject All Selected
+                Reject All
               </Button>
             </Stack>
           )}
           <TableContainer component={Paper} sx={{ bgcolor: glassTheme.tableBg, border: `1px solid ${glassTheme.cardBorder}`, borderRadius: 2 }}>
-            <Table size="small">
+            <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: glassTheme.tableHeaderBg }}>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }} padding="checkbox">
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }} padding="checkbox">
                     <Checkbox
+                      size="small"
                       indeterminate={inboxSelected.size > 0 && inboxSelected.size < pendingLeads.length}
                       checked={pendingLeads.length > 0 && inboxSelected.size === pendingLeads.length}
                       onChange={e => {
                         if (e.target.checked) setInboxSelected(new Set(pendingLeads.map(l => l.id)));
                         else setInboxSelected(new Set());
                       }}
+                      sx={{ color: 'rgba(240,240,248,0.4)' }}
                     />
                   </TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Score</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Tier</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Company</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Industry</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>City/State</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Owner</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Outreach Hook</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600 }}>Actions</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Score</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Tier</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Company</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Industry</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Location</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Outreach Hook</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {pendingLeads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} sx={{ color: glassTheme.textSecondary, textAlign: 'center', py: 4 }}>
+                    <TableCell colSpan={8} sx={{ color: glassTheme.textSecondary, textAlign: 'center', py: 6 }}>
                       No pending leads. Import a CSV to queue new leads for approval.
                     </TableCell>
                   </TableRow>
                 ) : pendingLeads.map(lead => (
-                  <TableRow key={lead.id} sx={{ '&:hover': { bgcolor: glassTheme.tableRowHover }, borderBottom: `1px solid ${glassTheme.tableRowBorder}` }}>
-                    <TableCell padding="checkbox">
+                  <TableRow key={lead.id} sx={{
+                    '&:hover': { bgcolor: 'rgba(99,102,241,0.06)' },
+                    borderBottom: `1px solid ${glassTheme.tableRowBorder}`,
+                    transition: 'background-color 0.15s',
+                  }}>
+                    <TableCell padding="checkbox" sx={{ py: 1.75 }}>
                       <Checkbox
+                        size="small"
                         checked={inboxSelected.has(lead.id)}
                         onChange={e => {
                           setInboxSelected(prev => {
@@ -710,41 +765,61 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
                             return next;
                           });
                         }}
+                        sx={{ color: 'rgba(240,240,248,0.4)' }}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ py: 1.75 }}>
                       {lead.aiiScore != null && (
-                        <Chip label={lead.aiiScore} size="small"
-                          sx={{ bgcolor: getScoreColor(lead.aiiScore), color: '#fff', fontWeight: 700 }} />
+                        <Box sx={{
+                          px: 1, py: 0.25, borderRadius: 1,
+                          bgcolor: getScoreColor(lead.aiiScore), color: '#fff',
+                          fontWeight: 700, fontSize: 12, display: 'inline-block',
+                          minWidth: 36, textAlign: 'center',
+                        }}>
+                          {lead.aiiScore}
+                        </Box>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ py: 1.75 }}>
                       {lead.aiiTier && (
-                        <Chip label={lead.aiiTier} size="small"
-                          sx={{ bgcolor: getTierColor(lead.aiiTier), color: '#fff', fontWeight: 700, minWidth: 32 }} />
+                        <Box sx={{
+                          width: 28, height: 28, borderRadius: '50%',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          bgcolor: getTierColor(lead.aiiTier), color: '#fff',
+                          fontWeight: 700, fontSize: 13, fontFamily: 'monospace',
+                        }}>
+                          {lead.aiiTier}
+                        </Box>
                       )}
                     </TableCell>
-                    <TableCell sx={{ color: glassTheme.textPrimary }}>
-                      <Typography variant="body2" fontWeight={500}>{lead.company || '-'}</Typography>
-                      {lead.firstName && <Typography variant="caption" sx={{ color: glassTheme.textSecondary }}>{lead.firstName} {lead.lastName}</Typography>}
+                    <TableCell sx={{ color: glassTheme.textPrimary, py: 1.75 }}>
+                      <Typography variant="body2" fontWeight={500} sx={{ lineHeight: 1.4 }}>{lead.company || '-'}</Typography>
+                      {lead.firstName && (
+                        <Typography variant="caption" sx={{ color: glassTheme.textSecondary, lineHeight: 1.4 }}>
+                          {lead.firstName} {lead.lastName}
+                        </Typography>
+                      )}
                     </TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary }}>{lead.aiiIndustry?.replace('_', ' ') || '-'}</TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary }}>
+                    <TableCell sx={{ color: glassTheme.textSecondary, py: 1.75 }}>
+                      {capitalize(lead.aiiIndustry) || '-'}
+                    </TableCell>
+                    <TableCell sx={{ color: glassTheme.textSecondary, py: 1.75, whiteSpace: 'nowrap' }}>
                       {[lead.aiiCity, lead.aiiState].filter(Boolean).join(', ') || '-'}
                     </TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary }}>{lead.aiiAssignedTo || '-'}</TableCell>
-                    <TableCell sx={{ color: glassTheme.textSecondary, maxWidth: 200 }}>
+                    <TableCell sx={{ py: 1.75 }}>
                       {lead.aiiOutreachHook ? (
-                        <Tooltip title={lead.aiiOutreachHook}>
-                          <Typography variant="caption" noWrap>{lead.aiiOutreachHook}</Typography>
+                        <Tooltip title={lead.aiiOutreachHook} arrow placement="top">
+                          <Typography variant="body2" noWrap sx={{ color: glassTheme.textSecondary, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'default' }}>
+                            {lead.aiiOutreachHook}
+                          </Typography>
                         </Tooltip>
-                      ) : '-'}
+                      ) : <Typography variant="body2" sx={{ color: glassTheme.textSecondary }}>—</Typography>}
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ py: 1.75 }}>
                       <Stack direction="row" spacing={0.5}>
-                        <IconButton size="small" onClick={() => openDealDrawer(lead)} title="View"><Visibility fontSize="small" /></IconButton>
-                        <IconButton size="small" color="success" onClick={() => handleApprove(lead.id)} title="Approve"><CheckCircle fontSize="small" /></IconButton>
-                        <IconButton size="small" color="error" onClick={() => handleReject(lead.id)} title="Reject"><Cancel fontSize="small" /></IconButton>
+                        <Tooltip title="View details"><IconButton size="small" onClick={() => openDealDrawer(lead)}><Visibility fontSize="small" /></IconButton></Tooltip>
+                        <Tooltip title="Approve"><IconButton size="small" color="success" onClick={() => handleApprove(lead.id)}><CheckCircle fontSize="small" /></IconButton></Tooltip>
+                        <Tooltip title="Reject"><IconButton size="small" color="error" onClick={() => handleReject(lead.id)}><Cancel fontSize="small" /></IconButton></Tooltip>
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -787,7 +862,7 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
             <FormControl fullWidth size="small">
               <InputLabel>Outcome</InputLabel>
               <Select value={logForm.outcome} label="Outcome" onChange={e => setLogForm(f => ({ ...f, outcome: e.target.value }))}>
-                <MenuItem value="">Select outcome...</MenuItem>
+                <MenuItem value="">Select outcome…</MenuItem>
                 <MenuItem value="pending">Pending</MenuItem>
                 <MenuItem value="replied">Replied</MenuItem>
                 <MenuItem value="booked">Booked</MenuItem>
@@ -822,7 +897,7 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
             <input accept=".csv" type="file" id="csv-import" style={{ display: 'none' }} onChange={handleCsvImport} />
             <label htmlFor="csv-import">
               <Button variant="outlined" component="span" startIcon={<CloudUpload />} disabled={importing}>
-                {importing ? 'Importing...' : 'Select CSV File'}
+                {importing ? 'Importing…' : 'Select CSV File'}
               </Button>
             </label>
             {importResult && (
@@ -864,7 +939,7 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
                 </Button>
               </Stack>
             )}
-            
+
             {/* Stage */}
             <FormControl fullWidth size="small" sx={{ mb: 2 }}>
               <InputLabel>Stage</InputLabel>
@@ -926,16 +1001,16 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
             ) : (
               <Stack spacing={1}>
                 {drawerLogs.map(log => (
-                  <Paper key={log.id} sx={{ p: 1.5, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1 }}>
+                  <Paper key={log.id} sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 1 }}>
                     <Stack direction="row" justifyContent="space-between">
                       <Box>
-                        <Typography variant="caption" sx={{ color: CHANNEL_ICONS[log.channel] }}>{CHANNEL_ICONS[log.channel]} {log.channel} #{log.touchNum}</Typography>
+                        <Typography variant="caption">{CHANNEL_ICONS[log.channel]} {log.channel} #{log.touchNum}</Typography>
                         {log.outcome && <Chip label={log.outcome} size="small" color={OUTCOME_COLORS[log.outcome] || 'default'} sx={{ ml: 1, fontSize: '10px' }} />}
                       </Box>
                       <Typography variant="caption" sx={{ color: glassTheme.textSecondary }}>{new Date(log.date).toLocaleDateString()}</Typography>
                     </Stack>
                     {log.notes && <Typography variant="caption" display="block" sx={{ color: glassTheme.textSecondary, mt: 0.5 }}>{log.notes}</Typography>}
-                    {log.nextAction && <Typography variant="caption" display="block" sx={{ color: '#6366f1', mt: 0.5 }}>Next: {log.nextAction}</Typography>}
+                    {log.nextAction && <Typography variant="caption" display="block" sx={{ color: '#6366f1', mt: 0.5 }}>→ {log.nextAction}</Typography>}
                   </Paper>
                 ))}
               </Stack>

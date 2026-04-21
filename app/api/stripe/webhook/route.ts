@@ -124,6 +124,25 @@ export async function POST(request: NextRequest) {
         } catch (convErr: any) {
           console.error('Auto-convert error (non-fatal):', convErr.message);
         }
+
+        // Mark AIIO contract as paid if deposit
+        try {
+          const metadata = session.metadata || {};
+          if (metadata.type === 'AIIO_DEPOSIT' && metadata.contractId) {
+            const contract = await prisma.contract.findUnique({ where: { id: metadata.contractId } });
+            if (contract && contract.terms) {
+              const termsData = JSON.parse(contract.terms);
+              termsData.paymentStatus = 'PAID';
+              termsData.paidAt = new Date().toISOString();
+              await prisma.contract.update({
+                where: { id: metadata.contractId },
+                data: { terms: JSON.stringify(termsData) },
+              });
+            }
+          }
+        } catch (contractErr: any) {
+          console.error('Contract payment update error (non-fatal):', contractErr.message);
+        }
       }
       break;
     }
