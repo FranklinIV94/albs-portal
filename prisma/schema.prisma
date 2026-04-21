@@ -41,6 +41,28 @@ model Lead {
   onboardingStep     Int       @default(0)   // 0=Welcome, 1=Services, 2=Availability, 3=Terms, 4=Payment, 5=Confirmation
   onboardingCompleted Boolean  @default(false)
   
+  // AIIO Lead Tracker fields
+  aiiTier            String?    // "A" | "B" | "C"
+  aiiScore           Int?       // 0-100
+  aiiOutreachHook    String?    // Pre-crafted personalization line
+  aiiIndustry        String?    // pool_service, hvac, electrical, roofing, lawn, carpentry, etc.
+  aiiCity            String?
+  aiiState           String?
+  aiiWebsite         String?
+  aiiOperationalSignals String?  // Manual signals from website analysis
+  aiiAssignedTo      String?    // Who owns this lead
+  aiiLastTouched    DateTime?
+  aiiNextAction      String?
+  aiiNextActionDate  DateTime?
+  
+  // AIIO Pipeline fields
+  aiiPipelineStage   String?    // NOT_STARTED | OUTREACH | DISCOVERY | ASSESSMENT_PROPOSAL | NEGOTIATION | SIGNED
+  aiiProduct         String?    // Assessment | Foundation | Growth | Enterprise
+  aiiFee             Int?       // Dollar amount in cents
+  aiiProbability     Int?       // 0-100
+  aiiWeightedValue   Int?       // fee * probability
+  aiiCloseDate       DateTime?
+
   // Stripe customer ID for card-on-file billing
   stripeCustomerId  String?
   
@@ -71,6 +93,7 @@ model Lead {
   bookingSlots   BookingSlot[]
   escalations    Escalation[]
   invoices      Invoice[]
+  outreachLogs   AiiOutreachLog[]
 }
 
 enum LeadStatus {
@@ -81,6 +104,11 @@ enum LeadStatus {
   ACTIVE
   WORK_IN_PROGRESS
   COMPLETE
+  OUTREACH
+  DISCOVERY
+  ASSESSMENT_PROPOSAL
+  NEGOTIATION
+  SIGNED
 }
 
 // Work History from LinkedIn/Apollo
@@ -183,6 +211,8 @@ enum ServiceCategory {
   MARKETING
   INSURANCE
   OPSEC
+  AIIO
+  AIIO_MONTHLY
 }
 
 // Lead-Service junction (for custom pricing)
@@ -565,3 +595,20 @@ enum InvoiceStatus {
   OVERDUE
   CANCELED
 }
+
+// AIIO Outreach Log
+model AiiOutreachLog {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now())
+  channel   String   // email | phone | voicemail | linkedin | linkedin_message
+  touchNum  Int      // Touch # in sequence
+  outcome   String?   // replied | booked | signed | no_answer | wrong_number | not_interested | pending
+  notes     String?
+  nextAction String?
+  nextDate  DateTime?
+  createdAt DateTime @default(now())
+}
+
+

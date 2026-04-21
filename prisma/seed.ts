@@ -350,6 +350,100 @@ async function main() {
   }
 
   console.log(`✅ Seeded ${services.length} services (including 4 new Insurance services)`)
+
+  // AIIO Services
+  const AIIO_SERVICES = [
+    {
+      id: 'aiio-assessment',
+      name: 'Technical Infrastructure Assessment',
+      category: 'AIIO' as ServiceCategory,
+      description: 'A 2-week diagnostic that maps your current tech stack, identifies automation opportunities, and delivers a full AI implementation roadmap. $2,500 credited toward any implementation.',
+      priceDisplay: '$2,500',
+      basePrice: 250000,
+      icon: '🔍',
+      sortOrder: 40,
+      isActive: true,
+    },
+    {
+      id: 'aiio-foundation',
+      name: 'Foundation Implementation',
+      category: 'AIIO' as ServiceCategory,
+      description: 'Full AI operating system build: document processing, workflow automation, CRM/PM integration, team training. 8-week delivery plus 3-month support. Credited $2,500 from assessment.',
+      priceDisplay: '$25,000–40,000',
+      basePrice: 2500000,
+      icon: '🏗️',
+      sortOrder: 41,
+      isActive: true,
+    },
+    {
+      id: 'aiio-growth',
+      name: 'Growth Implementation',
+      category: 'AIIO' as ServiceCategory,
+      description: 'Foundation plus 2–3 custom AI agents, advanced analytics, and industry-specific optimization. 8-week delivery plus 6-month support.',
+      priceDisplay: '$40,000–70,000',
+      basePrice: 4000000,
+      icon: '📈',
+      sortOrder: 42,
+      isActive: true,
+    },
+    {
+      id: 'aiio-enterprise',
+      name: 'Enterprise Implementation',
+      category: 'AIIO' as ServiceCategory,
+      description: 'Growth tier plus 5+ custom AI agents, executive dashboards, enterprise security, and org change management. 8-week delivery plus 12-month support.',
+      priceDisplay: '$70,000+',
+      basePrice: 7000000,
+      icon: '🏢',
+      sortOrder: 43,
+      isActive: true,
+    },
+    {
+      id: 'aiio-essential-monthly',
+      name: 'Essential Monthly Management',
+      category: 'AIIO_MONTHLY' as ServiceCategory,
+      description: 'Month-to-month performance review, AI system optimization, 2hr/month training, and priority support. For Foundation tier clients.',
+      priceDisplay: '$3,500/mo',
+      basePrice: 350000,
+      icon: '⚙️',
+      sortOrder: 44,
+      isActive: true,
+    },
+    {
+      id: 'aiio-growth-monthly',
+      name: 'Growth Monthly Management',
+      category: 'AIIO_MONTHLY' as ServiceCategory,
+      description: 'Essential plus bi-weekly optimization, up to 8hr/month custom development, and advanced analytics reporting. For Growth tier clients.',
+      priceDisplay: '$6,000/mo',
+      basePrice: 600000,
+      icon: '🚀',
+      sortOrder: 45,
+      isActive: true,
+    },
+    {
+      id: 'aiio-enterprise-monthly',
+      name: 'Enterprise Monthly Management',
+      category: 'AIIO_MONTHLY' as ServiceCategory,
+      description: 'Growth plus dedicated account manager, 16+hr/month custom development, weekly strategy sessions, and executive reporting. For Enterprise tier clients.',
+      priceDisplay: '$10,000+/mo',
+      basePrice: 1000000,
+      icon: '🎯',
+      sortOrder: 46,
+      isActive: true,
+    },
+  ]
+
+  for (const service of AIIO_SERVICES) {
+    try {
+      await prisma.service.upsert({
+        where: { id: service.id },
+        update: service,
+        create: service,
+      });
+    } catch (e) {
+      console.log(`Error creating AIIO service ${service.id}:`, e);
+    }
+  }
+  console.log(`✅ Seeded ${AIIO_SERVICES.length} AIIO services`)
 }
 
 main()

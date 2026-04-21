@@ -64,7 +64,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { firstName, lastName, email, company, title, phone, linkedinUrl, serviceCategories, serviceIds, status, onboardingCompleted, onboardingStep, sendWelcomeEmail } = body;
+    const { firstName, lastName, email, company, title, phone, linkedinUrl, serviceCategories, serviceIds, status, onboardingCompleted, onboardingStep, sendWelcomeEmail,
+      aiiTier, aiiScore, aiiOutreachHook, aiiIndustry, aiiCity, aiiState, aiiWebsite, aiiOperationalSignals, aiiAssignedTo } = body;
 
     const token = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
 
@@ -82,6 +83,16 @@ export async function POST(request: NextRequest) {
         onboardingCompleted: onboardingCompleted || false,
         onboardingStep: onboardingStep || 0,
         ...(serviceCategories && { serviceCategories }),
+        // AIIO fields
+        ...(aiiTier && { aiiTier }),
+        ...(aiiScore != null && { aiiScore }),
+        ...(aiiOutreachHook && { aiiOutreachHook }),
+        ...(aiiIndustry && { aiiIndustry }),
+        ...(aiiCity && { aiiCity }),
+        ...(aiiState && { aiiState }),
+        ...(aiiWebsite && { aiiWebsite }),
+        ...(aiiOperationalSignals && { aiiOperationalSignals }),
+        ...(aiiAssignedTo && { aiiAssignedTo }),
       },
     });
 
@@ -141,10 +152,26 @@ export async function POST(request: NextRequest) {
 }
 
 // PATCH /api/admin/leads - Update lead status
+// Also handles AIIO fields when leadId + AIIO fields are provided
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { leadId, status, notes, serviceCategories, firstName, lastName } = body;
+    const { leadId, status, notes, serviceCategories, firstName, lastName, 
+      aiiTier, aiiScore, aiiOutreachHook, aiiIndustry, aiiCity, aiiState, 
+      aiiWebsite, aiiOperationalSignals, aiiAssignedTo, aiiLastTouched,
+      aiiNextAction, aiiNextActionDate, aiiPipelineStage, aiiProduct, 
+      aiiFee, aiiProbability, aiiWeightedValue, aiiCloseDate } = body;
+
+
+    if (!leadId) {
+      return NextResponse.json({ error: 'leadId required' }, { status: 400 });
+    }
+
+    // Calculate weighted value if fee and probability are provided
+    let weightedValue = aiiWeightedValue;
+    if (aiiFee != null && aiiProbability != null && aiiWeightedValue == null) {
+      weightedValue = Math.round((aiiFee * aiiProbability) / 100);
+    }
 
     const lead = await prisma.lead.update({
       where: { id: leadId },
@@ -154,6 +181,25 @@ export async function PATCH(request: NextRequest) {
         ...(serviceCategories !== undefined && { serviceCategories }),
         ...(firstName !== undefined && { firstName }),
         ...(lastName !== undefined && { lastName }),
+        // AIIO fields
+        ...(aiiTier !== undefined && { aiiTier }),
+        ...(aiiScore !== undefined && { aiiScore }),
+        ...(aiiOutreachHook !== undefined && { aiiOutreachHook }),
+        ...(aiiIndustry !== undefined && { aiiIndustry }),
+        ...(aiiCity !== undefined && { aiiCity }),
+        ...(aiiState !== undefined && { aiiState }),
+        ...(aiiWebsite !== undefined && { aiiWebsite }),
+        ...(aiiOperationalSignals !== undefined && { aiiOperationalSignals }),
+        ...(aiiAssignedTo !== undefined && { aiiAssignedTo }),
+        ...(aiiLastTouched !== undefined && { aiiLastTouched: aiiLastTouched ? new Date(aiiLastTouched) : undefined }),
+        ...(aiiNextAction !== undefined && { aiiNextAction }),
+        ...(aiiNextActionDate !== undefined && { aiiNextActionDate: aiiNextActionDate ? new Date(aiiNextActionDate) : undefined }),
+        ...(aiiPipelineStage !== undefined && { aiiPipelineStage }),
+        ...(aiiProduct !== undefined && { aiiProduct }),
+        ...(aiiFee !== undefined && { aiiFee }),
+        ...(aiiProbability !== undefined && { aiiProbability }),
+        ...(weightedValue !== undefined && { aiiWeightedValue: weightedValue }),
+        ...(aiiCloseDate !== undefined && { aiiCloseDate: aiiCloseDate ? new Date(aiiCloseDate) : undefined }),
       },
     });
 

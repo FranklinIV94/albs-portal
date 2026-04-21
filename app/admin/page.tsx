@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import ProgressTracker from '@/components/ProgressTracker';
 import ChatPanel from '@/components/ChatPanel';
+import AiiTrackerTab from '@/components/AiiTrackerTab';
 
 interface ClientRequest {
   id: string;
@@ -990,6 +991,7 @@ function AdminDashboardContent() {
           <Tab label="Payroll" />
           <Tab label="📋 All Invoices" />
           <Tab label="📊 Pipeline" />
+          <Tab label="🤖 AIIO Tracker" />
           {analytics && <Tab label="📈 Analytics" />}
         </Tabs>
       </Box>
@@ -1228,8 +1230,13 @@ function AdminDashboardContent() {
         </Box>
       )}
 
-      {/* Analytics Tab (tab >= 5) */}
-      {tab >= 5 && analytics ? (
+      {/* AIIO Tracker Tab (tab === 5) */}
+      {tab === 5 && (
+        <AiiTrackerTab leads={leads} glassTheme={glassTheme} />
+      )}
+
+      {/* Analytics Tab (tab >= 6) */}
+      {tab >= 6 && analytics ? (
         <Box sx={{ p: 3 }}>
           <Typography variant="h5" sx={{ color: glassTheme.textPrimary, mb: 3 }}>
             📊 Analytics Dashboard
