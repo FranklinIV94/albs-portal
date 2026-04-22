@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import {
-  Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
   Button, TextField, FormControl, InputLabel, Select, MenuItem, Chip, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Stack, Divider,
   Tabs, Tab, Drawer, Menu, CircularProgress, Grid, Checkbox, Snackbar, Alert
@@ -122,6 +122,10 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ success: number; errors: number; skipped?: number } | null>(null);
 
+  // Lead List pagination
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
+
   // Deal detail drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerLead, setDrawerLead] = useState<any>(null);
@@ -174,6 +178,11 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
       return matchSearch && matchTier && matchIndustry;
     });
   }, [aiiLeads, search, tierFilter, industryFilter, showPending]);
+
+  const paginatedLeads = useMemo(() => {
+    const start = page * rowsPerPage;
+    return filteredLeads.slice(start, start + rowsPerPage);
+  }, [filteredLeads, page, rowsPerPage]);
 
   const pipelineMetrics = useMemo(() => {
     const active = aiiLeads.filter(l => l.aiiPipelineStage && l.aiiPipelineStage !== 'NOT_STARTED' && l.aiiPipelineStage !== 'PENDING_APPROVAL' && l.aiiPipelineStage !== 'REJECTED');
@@ -429,7 +438,7 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
                       No AIIO leads found. Import a CSV to get started.
                     </TableCell>
                   </TableRow>
-                ) : filteredLeads.map(lead => (
+                ) : paginatedLeads.map(lead => (
                   <TableRow
                     key={lead.id}
                     sx={{
@@ -507,6 +516,21 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
               </TableBody>
             </Table>
           </TableContainer>
+          <TablePagination
+            component="div"
+            count={filteredLeads.length}
+            page={page}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+            rowsPerPageOptions={[25, 50, 100, 150]}
+            sx={{
+              color: 'rgba(240,240,248,0.7)',
+              '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': { color: 'rgba(240,240,248,0.7)' },
+              borderTop: `1px solid ${glassTheme.tableRowBorder}`,
+              mt: 0,
+            }}
+          />
         </Box>
       )}
 
