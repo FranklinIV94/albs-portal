@@ -9,7 +9,8 @@ import {
 } from '@mui/material';
 import {
   CloudUpload, Search, Refresh, Visibility, Add,
-  Email, Phone, Voicemail, Message, Close, ArrowForward, CheckCircle, Cancel, MoreVert
+  Email, Phone, Voicemail, Message, Close, ArrowForward, CheckCircle, Cancel, MoreVert,
+  ArrowUpward, ArrowDownward, UnfoldMore
 } from '@mui/icons-material';
 
 const AIIO_STAGES = ['PENDING_APPROVAL', 'NOT_STARTED', 'OUTREACH', 'DISCOVERY', 'ASSESSMENT_PROPOSAL', 'NEGOTIATION', 'SIGNED', 'REJECTED'];
@@ -126,6 +127,11 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
 
+  // Lead List sorting
+  type SortField = 'company' | 'aiiScore' | 'aiiTier' | 'aiiIndustry' | 'aiiCity' | 'aiiPipelineStage';
+  const [sortBy, setSortBy] = useState<SortField>('aiiScore');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
   // Deal detail drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerLead, setDrawerLead] = useState<any>(null);
@@ -180,9 +186,22 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
   }, [aiiLeads, search, tierFilter, industryFilter, showPending]);
 
   const paginatedLeads = useMemo(() => {
+    const sorted = [...filteredLeads].sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === 'company') cmp = (a.company || '').localeCompare(b.company || '');
+      else if (sortBy === 'aiiScore') cmp = (a.aiiScore || 0) - (b.aiiScore || 0);
+      else if (sortBy === 'aiiTier') {
+        const order = { A: 3, B: 2, C: 1 };
+        cmp = (order[a.aiiTier as keyof typeof order] || 0) - (order[b.aiiTier as keyof typeof order] || 0);
+      }
+      else if (sortBy === 'aiiIndustry') cmp = (a.aiiIndustry || '').localeCompare(b.aiiIndustry || '');
+      else if (sortBy === 'aiiCity') cmp = ((a.aiiCity || '') + (a.aiiState || '')).localeCompare((b.aiiCity || '') + (b.aiiState || ''));
+      else if (sortBy === 'aiiPipelineStage') cmp = (a.aiiPipelineStage || '').localeCompare(b.aiiPipelineStage || '');
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
     const start = page * rowsPerPage;
-    return filteredLeads.slice(start, start + rowsPerPage);
-  }, [filteredLeads, page, rowsPerPage]);
+    return sorted.slice(start, start + rowsPerPage);
+  }, [filteredLeads, page, rowsPerPage, sortBy, sortDir]);
 
   const pipelineMetrics = useMemo(() => {
     const active = aiiLeads.filter(l => l.aiiPipelineStage && l.aiiPipelineStage !== 'NOT_STARTED' && l.aiiPipelineStage !== 'PENDING_APPROVAL' && l.aiiPipelineStage !== 'REJECTED');
@@ -422,11 +441,41 @@ export default function AiiTrackerTab({ leads, glassTheme }: AiiTrackerTabProps)
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: glassTheme.tableHeaderBg }}>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Tier</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Score</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Business</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Industry</TableCell>
-                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Location</TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    onClick={e => { e.stopPropagation(); setSortBy('aiiTier'); setSortDir(sortBy === 'aiiTier' && sortDir === 'asc' ? 'desc' : 'asc'); }}>
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      Tier
+                      {sortBy === 'aiiTier' ? (sortDir === 'asc' ? <ArrowUpward fontSize="small" sx={{ fontSize: 12 }} /> : <ArrowDownward fontSize="small" sx={{ fontSize: 12 }} />) : <UnfoldMore fontSize="small" sx={{ fontSize: 12, opacity: 0.4 }} />}
+                    </Stack>
+                  </TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5, cursor: 'pointer', userSelect: 'none' }}
+                    onClick={e => { e.stopPropagation(); setSortBy('aiiScore'); setSortDir(sortBy === 'aiiScore' && sortDir === 'desc' ? 'asc' : 'desc'); }}>
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      Score
+                      {sortBy === 'aiiScore' ? (sortDir === 'asc' ? <ArrowUpward fontSize="small" sx={{ fontSize: 12 }} /> : <ArrowDownward fontSize="small" sx={{ fontSize: 12 }} />) : <UnfoldMore fontSize="small" sx={{ fontSize: 12, opacity: 0.4 }} />}
+                    </Stack>
+                  </TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    onClick={e => { e.stopPropagation(); setSortBy('company'); setSortDir(sortBy === 'company' && sortDir === 'asc' ? 'desc' : 'asc'); }}>
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      Business
+                      {sortBy === 'company' ? (sortDir === 'asc' ? <ArrowUpward fontSize="small" sx={{ fontSize: 12 }} /> : <ArrowDownward fontSize="small" sx={{ fontSize: 12 }} />) : <UnfoldMore fontSize="small" sx={{ fontSize: 12, opacity: 0.4 }} />}
+                    </Stack>
+                  </TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5, cursor: 'pointer', userSelect: 'none' }}
+                    onClick={e => { e.stopPropagation(); setSortBy('aiiIndustry'); setSortDir(sortBy === 'aiiIndustry' && sortDir === 'asc' ? 'desc' : 'asc'); }}>
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      Industry
+                      {sortBy === 'aiiIndustry' ? (sortDir === 'asc' ? <ArrowUpward fontSize="small" sx={{ fontSize: 12 }} /> : <ArrowDownward fontSize="small" sx={{ fontSize: 12 }} />) : <UnfoldMore fontSize="small" sx={{ fontSize: 12, opacity: 0.4 }} />}
+                    </Stack>
+                  </TableCell>
+                  <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
+                    onClick={e => { e.stopPropagation(); setSortBy('aiiCity'); setSortDir(sortBy === 'aiiCity' && sortDir === 'asc' ? 'desc' : 'asc'); }}>
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      Location
+                      {sortBy === 'aiiCity' ? (sortDir === 'asc' ? <ArrowUpward fontSize="small" sx={{ fontSize: 12 }} /> : <ArrowDownward fontSize="small" sx={{ fontSize: 12 }} />) : <UnfoldMore fontSize="small" sx={{ fontSize: 12, opacity: 0.4 }} />}
+                    </Stack>
+                  </TableCell>
                   <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Outreach Hook</TableCell>
                   <TableCell sx={{ color: glassTheme.textPrimary, fontWeight: 600, py: 1.5 }}>Actions</TableCell>
                 </TableRow>
