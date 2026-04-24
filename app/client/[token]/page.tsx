@@ -7,6 +7,7 @@ import {
   Alert, Tabs, Tab, TextField, LinearProgress
 } from '@mui/material';
 import { CheckCircle, CloudUpload, Message, Add, ArrowForward, Assessment } from '@mui/icons-material';
+import UploadPanel from '@/components/UploadPanel';
 
 const themeStyles = {
   background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%)',
@@ -280,21 +281,7 @@ export default function ClientPortal() {
             <CardContent>
               <Typography sx={{ color: themeStyles.textPrimary, fontWeight: 'bold', fontSize: 18, mb: 2 }}>Documents</Typography>
               <Alert severity="info" sx={{ mb: 2 }}>📄 Upload tax documents, IDs, or other files. We receive them automatically.</Alert>
-              <Box sx={{ border: '2px dashed rgba(139,92,246,0.5)', borderRadius: 3, p: 4, textAlign: 'center', cursor: 'pointer', mb: 2 }}
-                onClick={() => document.getElementById('doc-upload')?.click()}>
-                <input id="doc-upload" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" style={{ display: 'none' }} onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const formData = new FormData();
-                  formData.append('token', token as string);
-                  formData.append('file', file);
-                  formData.append('description', 'Client portal upload');
-                  fetch('/api/documents', { method: 'POST', body: formData });
-                }} />
-                <CloudUpload sx={{ fontSize: 48, color: '#a78bfa', mb: 1 }} />
-                <Typography sx={{ color: themeStyles.textPrimary, fontWeight: 'bold' }}>Drop files here or click to upload</Typography>
-                <Typography sx={{ color: themeStyles.textMuted, fontSize: 13 }}>PDF, JPG, PNG, DOC, XLS up to 10MB</Typography>
-              </Box>
+              <UploadPanel token={token as string} />
               <Box sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.2)', borderRadius: 2 }}>
                 <Typography sx={{ color: themeStyles.textMuted, textAlign: 'center', py: 2 }}>No documents uploaded yet</Typography>
               </Box>
