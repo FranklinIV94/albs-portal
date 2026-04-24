@@ -455,7 +455,7 @@ async function main() {
 
 WHAT'S INCLUDED IN SETUP:
 • Full conversation flow design (hours, menu, reservations, pricing, dietary questions, cancellation policy)
-• Booking integration with your scheduling system (Calendly, Acuity, or Google Calendar)
+• Booking integration with your scheduling system (Calendly, Acuity, or Google Calendar) — or we'll build one from scratch for you (add-on)
 • After-hours auto-response with next-day follow-up
 • Brand voice customization (tone, greetings, response style)
 • Deployment on up to 2 platforms (website + Facebook or Instagram)
@@ -468,12 +468,18 @@ WHAT'S INCLUDED MONTHLY:
 • Monthly performance report (conversations handled, bookings captured, response rates)
 • Platform monitoring and uptime management
 • Bug fixes and technical support
+• Response time: 48 hours for revisions and updates (critical issues same business day)
 
-NOT INCLUDED (client responsibility):
+NOT INCLUDED (client responsibility or add-on):
 • Third-party platform costs (website hosting, Facebook/Instagram ad spend)
-• SMS/text messaging fees (available as add-on, $25/mo for SMS channel)
+• SMS/text messaging add-on: $25/mo
+• Custom booking system build (available as add-on)
 • Menu or service changes — submit via monthly revision request
 • Content creation for social media posts
+• White-label branding: client-branded available for additional fee
+
+CONTRACT:
+90-day minimum commitment
 
 PLATFORMS SUPPORTED:
 Website widget (Tidio or Intercom), Facebook Messenger, Instagram DM
@@ -495,7 +501,7 @@ Restaurants, salons, barbershops, nail studios, retail shops, cafes, food trucks
 WHAT'S INCLUDED IN SETUP:
 • Full conversation flow design (new patient intake, appointment booking, insurance FAQ, prescription refill requests, after-hours triage, staff routing)
 • HIPAA-aware phrasing and privacy-compliant language throughout all flows
-• Appointment booking integration with your practice management system (Dentrix, Open Dental, Eaglesoft, or generic Calendly)
+• Appointment booking integration with your practice management system (Dentrix, Open Dental, Eaglesoft, Calendly, or custom — we can build from scratch as add-on)
 • Automated appointment reminder sequence (24hr + 2hr before appointment)
 • After-hours emergency triage flow with escalation to on-call staff
 • New patient intake form collection (insurance, medical history, demographics)
@@ -511,13 +517,19 @@ WHAT'S INCLUDED MONTHLY:
 • Platform monitoring and uptime management
 • Bug fixes and technical support
 • No-show rate tracking and optimization recommendations
+• Response time: 48 hours for revisions and updates (critical issues same business day)
 
-NOT INCLUDED (client responsibility):
+NOT INCLUDED (client responsibility or add-on):
 • Third-party platform costs (practice management software, website hosting)
-• SMS/text messaging fees (available as add-on, $50/mo for SMS + reminder channel)
+• SMS/text messaging add-on: $50/mo (includes SMS + appointment reminder channel)
+• Custom booking system build (available as add-on)
 • Insurance verification or claims processing
 • Medical advice or diagnosis (bot explicitly redirects to provider)
 • Compliance audit or legal review of bot responses
+• White-label branding: client-branded available for additional fee
+
+CONTRACT:
+90-day minimum commitment
 
 PLATFORMS SUPPORTED:
 Website widget, Facebook Messenger, Instagram DM, Google Business Messages
@@ -540,8 +552,8 @@ WHAT'S INCLUDED IN SETUP:
 • Full conversation flow design (buyer/seller qualification, showing scheduling, property inquiry, neighborhood info, mortgage FAQ, CRM lead capture)
 • Proactive lead qualification — bot asks first question immediately, never waits for user to lead
 • Lead scoring and routing (hot leads flagged for immediate callback)
-• Showing scheduling integration with your calendar (Google Calendar, Calendly)
-• CRM integration via Zapier (HubSpot, Follow Up Boss, LionDesk, or custom)
+• Showing scheduling integration with your calendar (Google Calendar, Calendly, or custom — we can build from scratch as add-on)
+• CRM integration via Zapier (HubSpot, Follow Up Boss, LionDesk, KVCore, or custom)
 • After-hours lead capture with next-day callback scheduling
 • Deployment on up to 3 platforms (website + Facebook + Zillow/Realtor.com where supported)
 • Testing and quality assurance across all flows
@@ -555,13 +567,19 @@ WHAT'S INCLUDED MONTHLY:
 • CRM sync monitoring and error handling
 • Platform monitoring and uptime management
 • Bug fixes and technical support
+• Response time: 48 hours for revisions and updates (critical issues same business day)
 
-NOT INCLUDED (client responsibility):
+NOT INCLUDED (client responsibility or add-on):
 • Third-party platform costs (CRM subscription, website hosting, Zillow/Realtor.com fees)
-• SMS/text messaging fees (available as add-on, $35/mo for SMS channel)
+• SMS/text messaging add-on: $35/mo
+• Custom booking system build (available as add-on)
 • MLS listing data feeds (available as add-on)
 • Property photography, virtual tours, or listing content
 • Direct response on behalf of the agent (bot qualifies, agent closes)
+• White-label branding: client-branded available for additional fee
+
+CONTRACT:
+90-day minimum commitment
 
 PLATFORMS SUPPORTED:
 Website widget, Facebook Messenger, Instagram DM
@@ -584,7 +602,7 @@ One closed deal = $5,000-$20,000 in commission. The bot captures 8-25 leads/mont
 WHAT'S INCLUDED IN SETUP:
 • Discovery call to map your specific FAQ, booking flow, lead qualification, and customer service needs
 • Full conversation flow design tailored to your business and brand voice
-• Booking/scheduling integration with your existing systems
+• Booking/scheduling integration with your existing systems (or we'll build one from scratch as an add-on)
 • After-hours auto-response with next-day follow-up
 • Deployment on up to 2 platforms (website + social media)
 • Testing and quality assurance across all flows
@@ -596,12 +614,18 @@ WHAT'S INCLUDED MONTHLY:
 • Monthly performance report
 • Platform monitoring and uptime management
 • Bug fixes and technical support
+• Response time: 48 hours for revisions and updates (critical issues same business day)
 
-NOT INCLUDED (client responsibility):
+NOT INCLUDED (client responsibility or add-on):
 • Third-party platform costs (website hosting, social media ad spend)
-• SMS/text messaging fees (available as add-on, pricing varies)
+• SMS/text messaging add-on: pricing varies by volume
+• Custom booking system build (available as add-on)
 • Industry-specific compliance review (legal, financial, medical — available as add-on)
 • Content creation for marketing materials
+• White-label branding: client-branded available for additional fee
+
+CONTRACT:
+90-day minimum commitment
 
 PLATFORMS SUPPORTED:
 Website widget (Tidio, Intercom, or custom), Facebook Messenger, Instagram DM, WhatsApp (add-on)
