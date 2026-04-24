@@ -451,7 +451,35 @@ async function main() {
       id: 'chatbot-restaurant-salon',
       name: 'AI Chatbot — Restaurants & Salons',
       category: 'AI_CHATBOT' as ServiceCategory,
-      description: '24/7 AI chatbot for restaurants, salons, and retail. Handles hours, menu questions, reservations, booking requests, pricing, and dietary info. Captures every after-hours inquiry that would otherwise go unanswered. Deployed on your website, Facebook, and Instagram. Setup includes full conversation flow, booking integration, and after-hours routing.',
+      description: `24/7 AI chatbot for restaurants, salons, and retail businesses.
+
+WHAT'S INCLUDED IN SETUP:
+• Full conversation flow design (hours, menu, reservations, pricing, dietary questions, cancellation policy)
+• Booking integration with your scheduling system (Calendly, Acuity, or Google Calendar)
+• After-hours auto-response with next-day follow-up
+• Brand voice customization (tone, greetings, response style)
+• Deployment on up to 2 platforms (website + Facebook or Instagram)
+• Testing and quality assurance across all flows
+• Staff training walkthrough (30 min)
+
+WHAT'S INCLUDED MONTHLY:
+• Unlimited automated conversations (no per-message fees)
+• Conversation flow updates (up to 2 revisions/month)
+• Monthly performance report (conversations handled, bookings captured, response rates)
+• Platform monitoring and uptime management
+• Bug fixes and technical support
+
+NOT INCLUDED (client responsibility):
+• Third-party platform costs (website hosting, Facebook/Instagram ad spend)
+• SMS/text messaging fees (available as add-on, $25/mo for SMS channel)
+• Menu or service changes — submit via monthly revision request
+• Content creation for social media posts
+
+PLATFORMS SUPPORTED:
+Website widget (Tidio or Intercom), Facebook Messenger, Instagram DM
+
+IDEAL FOR:
+Restaurants, salons, barbershops, nail studios, retail shops, cafes, food trucks — any local business that gets the same 60 questions every week.`,
       priceDisplay: '$600 setup + $200/mo',
       basePrice: 60000,
       icon: '🍽️',
@@ -462,7 +490,40 @@ async function main() {
       id: 'chatbot-medical-dental',
       name: 'AI Chatbot — Medical & Dental',
       category: 'AI_CHATBOT' as ServiceCategory,
-      description: 'HIPAA-aware AI chatbot for medical and dental practices. Handles new patient intake, appointment booking with automated reminders, insurance FAQ, prescription refill requests, after-hours emergency triage, and staff routing. Reduces no-shows by capturing every after-hours booking request and running automated reminder sequences. Average practice loses $105K/year to no-shows — this bot pays for itself in the first week.',
+      description: `HIPAA-aware AI chatbot for medical and dental practices.
+
+WHAT'S INCLUDED IN SETUP:
+• Full conversation flow design (new patient intake, appointment booking, insurance FAQ, prescription refill requests, after-hours triage, staff routing)
+• HIPAA-aware phrasing and privacy-compliant language throughout all flows
+• Appointment booking integration with your practice management system (Dentrix, Open Dental, Eaglesoft, or generic Calendly)
+• Automated appointment reminder sequence (24hr + 2hr before appointment)
+• After-hours emergency triage flow with escalation to on-call staff
+• New patient intake form collection (insurance, medical history, demographics)
+• Deployment on up to 3 platforms (website + Facebook + Google Business)
+• Testing and quality assurance across all flows
+• Staff training walkthrough (30 min)
+
+WHAT'S INCLUDED MONTHLY:
+• Unlimited automated conversations (no per-message fees)
+• Conversation flow updates (up to 3 revisions/month)
+• Monthly performance report (appointments booked, no-show rate before/after, after-hours capture rate)
+• Appointment reminder monitoring and delivery confirmation
+• Platform monitoring and uptime management
+• Bug fixes and technical support
+• No-show rate tracking and optimization recommendations
+
+NOT INCLUDED (client responsibility):
+• Third-party platform costs (practice management software, website hosting)
+• SMS/text messaging fees (available as add-on, $50/mo for SMS + reminder channel)
+• Insurance verification or claims processing
+• Medical advice or diagnosis (bot explicitly redirects to provider)
+• Compliance audit or legal review of bot responses
+
+PLATFORMS SUPPORTED:
+Website widget, Facebook Messenger, Instagram DM, Google Business Messages
+
+ROI CONTEXT:
+Average dental practice loses $105,000/year to no-shows (15-30% no-show rate). At $400/month, this service pays for itself with just 2-3 recovered appointments per month.`,
       priceDisplay: '$1,700 setup + $400/mo',
       basePrice: 170000,
       icon: '🦷',
@@ -473,7 +534,41 @@ async function main() {
       id: 'chatbot-real-estate',
       name: 'AI Chatbot — Real Estate',
       category: 'AI_CHATBOT' as ServiceCategory,
-      description: 'AI chatbot for real estate agents and brokerages. Qualifies leads instantly (buyer/seller, budget, timeline, neighborhood), schedules showings, answers property questions, and captures every inbound inquiry — including the 9pm Friday messages that would otherwise go to a competitor. Integrates with your CRM (HubSpot, Follow Up Boss, LionDesk) via Zapier. One closed lead pays for years of service.',
+      description: `AI chatbot for real estate agents and brokerages.
+
+WHAT'S INCLUDED IN SETUP:
+• Full conversation flow design (buyer/seller qualification, showing scheduling, property inquiry, neighborhood info, mortgage FAQ, CRM lead capture)
+• Proactive lead qualification — bot asks first question immediately, never waits for user to lead
+• Lead scoring and routing (hot leads flagged for immediate callback)
+• Showing scheduling integration with your calendar (Google Calendar, Calendly)
+• CRM integration via Zapier (HubSpot, Follow Up Boss, LionDesk, or custom)
+• After-hours lead capture with next-day callback scheduling
+• Deployment on up to 3 platforms (website + Facebook + Zillow/Realtor.com where supported)
+• Testing and quality assurance across all flows
+• Agent training walkthrough (30 min)
+
+WHAT'S INCLUDED MONTHLY:
+• Unlimited automated conversations (no per-message fees)
+• Conversation flow updates (up to 3 revisions/month)
+• Monthly performance report (leads captured, qualification rates, showing conversions, callback rates)
+• Lead quality monitoring and flow optimization
+• CRM sync monitoring and error handling
+• Platform monitoring and uptime management
+• Bug fixes and technical support
+
+NOT INCLUDED (client responsibility):
+• Third-party platform costs (CRM subscription, website hosting, Zillow/Realtor.com fees)
+• SMS/text messaging fees (available as add-on, $35/mo for SMS channel)
+• MLS listing data feeds (available as add-on)
+• Property photography, virtual tours, or listing content
+• Direct response on behalf of the agent (bot qualifies, agent closes)
+
+PLATFORMS SUPPORTED:
+Website widget, Facebook Messenger, Instagram DM
+CRM INTEGRATIONS: HubSpot, Follow Up Boss, LionDesk, KVCore (via Zapier)
+
+ROI CONTEXT:
+One closed deal = $5,000-$20,000 in commission. The bot captures 8-25 leads/month depending on traffic. One closed lead pays for 2+ years of service.`,
       priceDisplay: '$1,200 setup + $320/mo',
       basePrice: 120000,
       icon: '🏠',
@@ -484,7 +579,38 @@ async function main() {
       id: 'chatbot-custom',
       name: 'AI Chatbot — Custom Business',
       category: 'AI_CHATBOT' as ServiceCategory,
-      description: 'Custom AI chatbot built for any industry or business type. Handles your specific FAQ, booking flow, lead qualification, and customer service — trained on your business data and brand voice. Includes conversation flow design, platform deployment (web + social), booking integration, after-hours routing, and monthly performance reporting. Setup fee varies by complexity.',
+      description: `Custom AI chatbot built for your industry and business type.
+
+WHAT'S INCLUDED IN SETUP:
+• Discovery call to map your specific FAQ, booking flow, lead qualification, and customer service needs
+• Full conversation flow design tailored to your business and brand voice
+• Booking/scheduling integration with your existing systems
+• After-hours auto-response with next-day follow-up
+• Deployment on up to 2 platforms (website + social media)
+• Testing and quality assurance across all flows
+• Staff training walkthrough (30 min)
+
+WHAT'S INCLUDED MONTHLY:
+• Unlimited automated conversations (no per-message fees)
+• Conversation flow updates (up to 2 revisions/month)
+• Monthly performance report
+• Platform monitoring and uptime management
+• Bug fixes and technical support
+
+NOT INCLUDED (client responsibility):
+• Third-party platform costs (website hosting, social media ad spend)
+• SMS/text messaging fees (available as add-on, pricing varies)
+• Industry-specific compliance review (legal, financial, medical — available as add-on)
+• Content creation for marketing materials
+
+PLATFORMS SUPPORTED:
+Website widget (Tidio, Intercom, or custom), Facebook Messenger, Instagram DM, WhatsApp (add-on)
+
+PRICING:
+Setup fee varies by complexity ($600-$3,000). Monthly retainer starts at $200/mo. Contact us for a custom quote based on your industry, number of platforms, and integration requirements.
+
+PERFECT FOR:
+Legal practices, accounting firms, HVAC/plumbing/electrical, auto dealerships, fitness studios, veterinary clinics, property management, and any business that answers the same questions repeatedly.`,
       priceDisplay: 'Contact for pricing',
       basePrice: 0,
       icon: '💬',

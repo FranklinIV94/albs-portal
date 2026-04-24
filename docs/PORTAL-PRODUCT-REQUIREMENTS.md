@@ -318,3 +318,23 @@ source: Franklin J Bryant IV — Portal Review Notes
 - Three critical bugs affect daily usability and data integrity — prioritize in Sprint 1
 - Portal location: `albs-portal/` in workspace
 - Production URL: https://onboarding.simplifyingbusinesses.com
+
+---
+
+## AI Chatbot Services — Added April 23, 2026
+
+New service category (AI_CHATBOT) added to portal with 4 tiers:
+
+| Service | Setup Fee | Monthly | Icon | ID |
+|---------|-----------|---------|------|----|
+| Restaurants & Salons | $600 | $200/mo | 🍽️ | chatbot-restaurant-salon |
+| Medical & Dental | $1,700 | $400/mo | 🦷 | chatbot-medical-dental |
+| Real Estate | $1,200 | $320/mo | 🏠 | chatbot-real-estate |
+| Custom Business | Contact | Varies | 💬 | chatbot-custom |
+
+- Schema: Added AI_CHATBOT to ServiceCategory enum
+- Seed: Added 4 services to prisma/seed.ts
+- Frontend: Added category label to onboarding + admin pages
+- Source: @anatolikopadze article on AI chatbot pricing for local businesses
+- Pricing model: Setup fee + monthly retainer (matches industry standard)
+- Key differentiator: ALBS bundles chatbot with full back-office services (tax, bookkeeping, payroll)
