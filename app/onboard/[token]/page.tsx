@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Card, CardContent, Typography, Box, TextField, Button,
   Stepper, Step, StepLabel, Checkbox, FormControlLabel,
@@ -60,6 +60,7 @@ const themeStyles = {
 };
 
 export default function OnboardPage() {
+  const router = useRouter();
   const params = useParams<{ token: string }>();
   const searchParams = useSearchParams();
   const token = params.token;
@@ -97,9 +98,9 @@ export default function OnboardPage() {
   // Restore progress from database - skip to completed steps
   useEffect(() => {
     if (lead && !isConfirmed) {
-      // If onboarding is complete, show confirmation/messaging view
+      // If onboarding is complete, redirect to client portal
       if (lead.onboardingCompleted || lead.status === 'ACTIVE') {
-        setActiveStep(5);
+        router.push(`/client/${token}`);
         return;
       }
       
