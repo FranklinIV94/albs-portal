@@ -43,6 +43,13 @@ interface LeadData {
   leadServices: Array<{ service: Service }>;
 }
 
+const CONSULTATIONS = [
+  { id: 'strategy', type: 'Strategy Call', duration: '30 min', desc: 'Discuss your business goals and roadmap', icon: '🎯', deposit: 150 },
+  { id: 'tax', type: 'Tax Consultation', duration: '45 min', desc: 'Review your tax situation and planning opportunities', icon: '🧮', deposit: 150 },
+  { id: 'ai', type: 'AI Assessment', duration: '60 min', desc: 'Deep dive into your operations and automation potential', icon: '🤖', deposit: 150 },
+  { id: 'qa', type: 'General Q&A', duration: '15 min', desc: 'Quick questions about our services', icon: '❓', deposit: 0 },
+];
+
 export default function ClientPortal() {
   const { token } = useParams();
   const [lead, setLead] = useState<LeadData | null>(null);
@@ -295,22 +302,50 @@ export default function ClientPortal() {
             <Card sx={{ bgcolor: themeStyles.cardBg, border: `1px solid ${themeStyles.cardBorder}`, borderRadius: 3 }}>
               <CardContent>
                 <Typography sx={{ color: themeStyles.textPrimary, fontWeight: 'bold', fontSize: 18, mb: 1 }}>📅 Book a Consultation</Typography>
-                <Typography sx={{ color: themeStyles.textMuted, mb: 3 }}>Schedule a session with our team.</Typography>
+                <Typography sx={{ color: themeStyles.textMuted, mb: 3 }}>Schedule a session with our team. Paid consultations require a $150 deposit.</Typography>
+                <Alert severity="info" sx={{ mb: 3, bgcolor: themeStyles.accentBlue, color: '#60a5fa', border: '1px solid rgba(59,130,246,0.3)' }}>
+                  💳 A $150 deposit is required to book Strategy Calls, Tax Consultations, and AI Assessments. The free Q&A needs no deposit.
+                </Alert>
                 <Stack spacing={2}>
-                  {[
-                    { type: 'Strategy Call', duration: '30 min', desc: 'Discuss your business goals', icon: '🎯' },
-                    { type: 'Tax Consultation', duration: '45 min', desc: 'Review your tax situation', icon: '🧮' },
-                    { type: 'AI Assessment', duration: '60 min', desc: 'Deep dive into automation potential', icon: '🤖' },
-                    { type: 'General Q&A', duration: '15 min', desc: 'Quick questions about services', icon: '❓' },
-                  ].map(opt => (
-                    <Box key={opt.type} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 2 }}>
+                  {CONSULTATIONS.map(opt => (
+                    <Box key={opt.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'rgba(255,255,255,0.04)', borderRadius: 2 }}>
                       <Typography sx={{ fontSize: 32 }}>{opt.icon}</Typography>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={{ color: themeStyles.textPrimary, fontWeight: 'bold' }}>{opt.type}</Typography>
                         <Typography sx={{ color: themeStyles.textMuted, fontSize: 13 }}>{opt.desc}</Typography>
+                        {opt.deposit > 0 && (
+                          <Typography sx={{ color: '#22c55e', fontSize: 12, fontWeight: 'bold' }}>${opt.deposit} deposit required</Typography>
+                        )}
                       </Box>
                       <Chip label={opt.duration} size="small" sx={{ bgcolor: 'rgba(139,92,246,0.2)', color: '#a78bfa' }} />
-                      <Button variant="outlined" size="small" href="/calendar" sx={{ borderColor: '#a78bfa', color: '#a78bfa' }}>Book</Button>
+                      {opt.deposit > 0 ? (
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={async () => {
+                            try {
+                              const res = await fetch('/api/stripe/checkout', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  leadId: lead?.id,
+                                  consultationType: opt.id,
+                                  depositAmount: opt.deposit * 100,
+                                  consultationLabel: opt.type,
+                                }),
+                              });
+                              const data = await res.json();
+                              if (data.url) window.location.href = data.url;
+                              else alert(data.error || 'Could not initiate checkout');
+                            } catch { alert('Checkout failed. Please try again.'); }
+                          }}
+                          sx={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)', borderRadius: 2 }}
+                        >
+                          Pay ${opt.deposit} Deposit
+                        </Button>
+                      ) : (
+                        <Button variant="outlined" size="small" href="/calendar" sx={{ borderColor: '#a78bfa', color: '#a78bfa' }}>Book Free</Button>
+                      )}
                     </Box>
                   ))}
                 </Stack>
