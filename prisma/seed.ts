@@ -445,6 +445,67 @@ async function main() {
   }
   console.log(`✅ Seeded ${AIIO_SERVICES.length} AIIO services`)
 
+  // AI Chatbot Services
+  const CHATBOT_SERVICES = [
+    {
+      id: 'chatbot-restaurant-salon',
+      name: 'AI Chatbot — Restaurants & Salons',
+      category: 'AI_CHATBOT' as ServiceCategory,
+      description: '24/7 AI chatbot for restaurants, salons, and retail. Handles hours, menu questions, reservations, booking requests, pricing, and dietary info. Captures every after-hours inquiry that would otherwise go unanswered. Deployed on your website, Facebook, and Instagram. Setup includes full conversation flow, booking integration, and after-hours routing.',
+      priceDisplay: '$600 setup + $200/mo',
+      basePrice: 60000,
+      icon: '🍽️',
+      sortOrder: 50,
+      isActive: true,
+    },
+    {
+      id: 'chatbot-medical-dental',
+      name: 'AI Chatbot — Medical & Dental',
+      category: 'AI_CHATBOT' as ServiceCategory,
+      description: 'HIPAA-aware AI chatbot for medical and dental practices. Handles new patient intake, appointment booking with automated reminders, insurance FAQ, prescription refill requests, after-hours emergency triage, and staff routing. Reduces no-shows by capturing every after-hours booking request and running automated reminder sequences. Average practice loses $105K/year to no-shows — this bot pays for itself in the first week.',
+      priceDisplay: '$1,700 setup + $400/mo',
+      basePrice: 170000,
+      icon: '🦷',
+      sortOrder: 51,
+      isActive: true,
+    },
+    {
+      id: 'chatbot-real-estate',
+      name: 'AI Chatbot — Real Estate',
+      category: 'AI_CHATBOT' as ServiceCategory,
+      description: 'AI chatbot for real estate agents and brokerages. Qualifies leads instantly (buyer/seller, budget, timeline, neighborhood), schedules showings, answers property questions, and captures every inbound inquiry — including the 9pm Friday messages that would otherwise go to a competitor. Integrates with your CRM (HubSpot, Follow Up Boss, LionDesk) via Zapier. One closed lead pays for years of service.',
+      priceDisplay: '$1,200 setup + $320/mo',
+      basePrice: 120000,
+      icon: '🏠',
+      sortOrder: 52,
+      isActive: true,
+    },
+    {
+      id: 'chatbot-custom',
+      name: 'AI Chatbot — Custom Business',
+      category: 'AI_CHATBOT' as ServiceCategory,
+      description: 'Custom AI chatbot built for any industry or business type. Handles your specific FAQ, booking flow, lead qualification, and customer service — trained on your business data and brand voice. Includes conversation flow design, platform deployment (web + social), booking integration, after-hours routing, and monthly performance reporting. Setup fee varies by complexity.',
+      priceDisplay: 'Contact for pricing',
+      basePrice: 0,
+      icon: '💬',
+      sortOrder: 53,
+      isActive: true,
+    },
+  ]
+
+  for (const service of CHATBOT_SERVICES) {
+    try {
+      await prisma.service.upsert({
+        where: { id: service.id },
+        update: service,
+        create: service,
+      });
+    } catch (e) {
+      console.log(`Error creating chatbot service ${service.id}:`, e)
+    }
+  }
+  console.log(`✅ Seeded ${CHATBOT_SERVICES.length} AI Chatbot services`)
+
   // Client Tiers
   const CLIENT_TIERS = [
     { id: 'TIER_A', name: 'Tier A - Enterprise', description: 'Full-service client with dedicated account manager, priority support, and custom solutions.' },

@@ -267,6 +267,7 @@ enum ServiceCategory {
   OPSEC
   AIIO
   AIIO_MONTHLY
+  AI_CHATBOT
 }
 
 // Lead-Service junction (for custom pricing)

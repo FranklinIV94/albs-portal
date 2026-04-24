@@ -40,6 +40,7 @@ const STEPS = ['Welcome', 'Services', 'Availability', 'PIN Setup', 'Confirmation
 
 const CATEGORIES: Record<string, string> = {
   AI_SERVICES: '🤖 AI Services',
+  AI_CHATBOT: '💬 AI Chatbots',
   TAX_BUSINESS: '📋 Tax & Business',
   PAYROLL: '💰 Payroll Setup',
   PAYROLL_BOOKKEEPING: '💼 Payroll & Bookkeeping',

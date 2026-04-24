@@ -75,6 +75,7 @@ const STATUS_COLORS: Record<string, 'default' | 'primary' | 'secondary' | 'succe
 
 const CATEGORIES: Record<string, string> = {
   AI_SERVICES: '🤖 AI Services',
+  AI_CHATBOT: '💬 AI Chatbots',
   TAX_BUSINESS: '📋 Tax & Business',
   PAYROLL: '💰 Payroll Setup',
   PAYROLL_BOOKKEEPING: '💼 Payroll & Bookkeeping',
