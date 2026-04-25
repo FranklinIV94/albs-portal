@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { Box, Typography, Collapse, IconButton } from '@mui/material';
-import { ChevronLeft, ChevronRight, ExpandLess, ExpandMore } from '@mui/icons-material';
+import { useState, useEffect } from 'react';
+import { Box, Typography, Collapse, IconButton, Drawer, useMediaQuery, useTheme } from '@mui/material';
+import { ChevronLeft, ChevronRight, ExpandLess, ExpandMore, Menu as MenuIcon } from '@mui/icons-material';
 
 export interface SidebarItem {
   label: string;
   icon: string;
-  tabIndex: number | null; // null = action item (e.g., Manage Services)
+  tabIndex: number | null;
   action?: () => void;
 }
 
@@ -52,10 +52,17 @@ interface AdminSidebarProps {
   activeTab: number;
   onTabChange: (tabIndex: number) => void;
   onManageServices?: () => void;
+  mobileOpen?: boolean;
+  onMobileToggle?: () => void;
 }
 
-export default function AdminSidebar({ activeTab, onTabChange, onManageServices }: AdminSidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+function SidebarContent({ activeTab, onTabChange, onManageServices, collapsed, onToggleCollapse }: {
+  activeTab: number;
+  onTabChange: (tabIndex: number) => void;
+  onManageServices?: () => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     LEADS: true,
     FINANCES: true,
@@ -74,23 +81,20 @@ export default function AdminSidebar({ activeTab, onTabChange, onManageServices 
       sx={{
         width: sidebarWidth,
         minWidth: sidebarWidth,
-        height: 'calc(100vh - 64px)',
-        position: 'sticky',
-        top: 64,
+        height: '100%',
         background: 'rgba(15,23,42,0.95)',
         borderRight: '1px solid rgba(99,102,241,0.2)',
         display: 'flex',
         flexDirection: 'column',
         overflowY: 'auto',
         transition: 'width 200ms ease',
-        zIndex: 10,
       }}
     >
       {/* Collapse toggle */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: collapsed ? 0.5 : 1 }}>
         <IconButton
           size="small"
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={onToggleCollapse}
           sx={{ color: 'rgba(255,255,255,0.6)' }}
         >
           {collapsed ? <ChevronRight fontSize="small" /> : <ChevronLeft fontSize="small" />}
@@ -236,5 +240,72 @@ export default function AdminSidebar({ activeTab, onTabChange, onManageServices 
         );
       })}
     </Box>
+  );
+}
+
+export default function AdminSidebar({ activeTab, onTabChange, onManageServices, mobileOpen = false, onMobileToggle }: AdminSidebarProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // < 900px
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Auto-collapse on medium screens
+  useEffect(() => {
+    if (isMobile) {
+      setCollapsed(false); // drawer handles it
+    }
+  }, [isMobile]);
+
+  const handleTabChange = (tabIndex: number) => {
+    onTabChange(tabIndex);
+    // Close mobile drawer on navigation
+    if (isMobile && onMobileToggle) {
+      onMobileToggle();
+    }
+  };
+
+  const handleManageServices = () => {
+    if (onManageServices) onManageServices();
+    if (isMobile && onMobileToggle) {
+      onMobileToggle();
+    }
+  };
+
+  // Mobile: Drawer overlay
+  if (isMobile) {
+    return (
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onMobileToggle}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: 240,
+            background: 'rgba(15,23,42,0.98)',
+            borderRight: '1px solid rgba(99,102,241,0.2)',
+          },
+        }}
+      >
+        <SidebarContent
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          onManageServices={handleManageServices}
+          collapsed={false}
+          onToggleCollapse={() => setCollapsed(!collapsed)}
+        />
+      </Drawer>
+    );
+  }
+
+  // Desktop: persistent sidebar
+  return (
+    <SidebarContent
+      activeTab={activeTab}
+      onTabChange={onTabChange}
+      onManageServices={onManageServices}
+      collapsed={collapsed}
+      onToggleCollapse={() => setCollapsed(!collapsed)}
+    />
   );
 }

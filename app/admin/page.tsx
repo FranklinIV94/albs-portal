@@ -8,13 +8,14 @@ import {
   Chip, Dialog, DialogTitle, DialogContent, DialogActions,
   FormControl, InputLabel, Select, MenuItem, IconButton,
   Paper, Tabs, Tab, Stack, Alert, Checkbox, FormControlLabel, FormGroup, Divider, CircularProgress,
-  ThemeProvider, createTheme, CssBaseline, Menu
+  ThemeProvider, createTheme, CssBaseline, Menu, useMediaQuery, useTheme
 } from '@mui/material';
 import { 
   PersonAdd, ContentCopy, Visibility, Edit, CheckCircle,
   Schedule, Payment, Description, Refresh, Save, Delete, Chat,
   CloudUpload, Add, Send, AttachMoney, Settings, TrendingUp, AccountBalance,
-  Assignment, Note, History, CheckBox, Flag, ViewKanban, FileDownload, ArrowForward, Close
+  Assignment, Note, History, CheckBox, Flag, ViewKanban, FileDownload, ArrowForward, Close,
+  Menu as MenuIcon
 } from '@mui/icons-material';
 import AdminSidebar from '../../components/AdminSidebar';
 import { 
@@ -252,6 +253,10 @@ const darkTheme = {
 function AdminDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // < 900px
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm')); // < 600px
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -844,18 +849,43 @@ function AdminDashboardContent() {
       background: glassTheme.background,
       backgroundAttachment: 'fixed',
     }}>
-      <AdminSidebar activeTab={tab} onTabChange={setTab} onManageServices={() => setServicesTabOpen(true)} />
+      <AdminSidebar activeTab={tab} onTabChange={setTab} onManageServices={() => setServicesTabOpen(true)} mobileOpen={mobileSidebarOpen} onMobileToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
       <Box sx={{ 
         flex: 1,
-        p: 4, 
+        p: isMobile ? 2 : 4, 
         maxWidth: 1600, 
         mx: 'auto', 
         minHeight: '100vh',
       }}>
+      {/* Mobile header bar */}
+      {isMobile && (
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1, 
+          mb: 2,
+          p: 1.5,
+          borderRadius: 2,
+          background: glassTheme.cardBg,
+          border: `1px solid ${glassTheme.cardBorder}`,
+        }}>
+          <IconButton onClick={() => setMobileSidebarOpen(true)} sx={{ color: glassTheme.textPrimary }}>
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" fontWeight="bold" sx={{
+            background: glassTheme.accentGradient,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontSize: '1.1rem',
+          }}>
+            ALBS Portal
+          </Typography>
+        </Box>
+      )}
       {/* Header with gradient */}
       <Box sx={{ 
         mb: 4, 
-        p: 3, 
+        p: isMobile ? 2 : 3, 
         borderRadius: 3,
         background: glassTheme.cardBg,
         border: `1px solid ${glassTheme.cardBorder}`,
@@ -864,7 +894,7 @@ function AdminDashboardContent() {
       }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
           <Box>
-            <Typography variant="h3" fontWeight="bold" sx={{
+            <Typography variant={isMobile ? "h5" : "h3"} fontWeight="bold" sx={{
               background: glassTheme.accentGradient,
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -875,8 +905,9 @@ function AdminDashboardContent() {
               Manage clients, services, and billing
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-            {/* Quick Add Lead */}
+          <Box sx={{ display: 'flex', gap: isMobile ? 1 : 2, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Quick Add Lead — hidden on small mobile */}
+            {!isSmallMobile && (
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', bgcolor: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 2, p: 0.8 }}>
               <TextField size="small" placeholder="First" value={quickAdd.firstName} onChange={e => setQuickAdd({...quickAdd, firstName: e.target.value})} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8rem' }, width: 90 }} />
               <TextField size="small" placeholder="Last" value={quickAdd.lastName} onChange={e => setQuickAdd({...quickAdd, lastName: e.target.value})} sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8rem' }, width: 90 }} />
@@ -892,7 +923,6 @@ function AdminDashboardContent() {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ ...quickAdd }),
-                      // sendWelcomeEmail defaults to true in API — email goes out automatically
                     });
                     const data = await res.json();
                     if (data.success) {
@@ -908,6 +938,7 @@ function AdminDashboardContent() {
                 {quickAddLoading ? '...' : 'Add \u0026 Open'}
               </Button>
             </Box>
+            )}
             <Button 
               variant="outlined"
               startIcon={<Settings />}
@@ -958,13 +989,13 @@ function AdminDashboardContent() {
       {/* Status Summary with glass morphism */}
       <Box sx={{ 
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-        gap: 2, 
+        gridTemplateColumns: isSmallMobile ? 'repeat(2, 1fr)' : isMobile ? 'repeat(4, 1fr)' : 'repeat(auto-fit, minmax(100px, 1fr))',
+        gap: isMobile ? 1 : 2, 
         mb: 4, 
       }}>
         {STATUSES.map((status, idx) => (
           <Box key={status} sx={{
-            p: 2,
+            p: isMobile ? 1.5 : 2,
             borderRadius: 2,
             background: glassTheme.cardBg,
             border: `1px solid ${glassTheme.cardBorder}`,
@@ -972,13 +1003,13 @@ function AdminDashboardContent() {
             backdropFilter: 'none',
             textAlign: 'center',
           }}>
-            <Typography variant="h4" fontWeight="bold" sx={{ 
+            <Typography variant={isSmallMobile ? "h5" : "h4"} fontWeight="bold" sx={{ 
               color: idx % 2 === 0 ? '#6366f1' : '#8b5cf6',
               textShadow: '0 0 20px rgba(99,102,241,0.5)',
             }}>
               {getStatusCount(status)}
             </Typography>
-            <Typography variant="caption" sx={{ color: glassTheme.textSecondary, textTransform: 'uppercase', letterSpacing: 1 }}>
+            <Typography variant={isSmallMobile ? "overline" : "caption"} sx={{ color: glassTheme.textSecondary, textTransform: 'uppercase', letterSpacing: isSmallMobile ? 0.5 : 1 }}>
               {status.replace(/_/g, ' ')}
             </Typography>
           </Box>
@@ -1300,6 +1331,72 @@ function AdminDashboardContent() {
       {/* Lead Table (tabs 0-2) */}
       {tab <= 2 && (
       <>
+      {/* Mobile: Card layout */}
+      {isSmallMobile ? (
+        <Stack spacing={1.5}>
+          {leads.filter(l => {
+            if (tab === 1) return l.leadServices?.some((s: any) => s.service.name.includes('AI'));
+            if (tab === 2) return l.leadServices?.some((s: any) => ['Tax', 'Payroll'].some((t: string) => s.service.name.includes(t)));
+            return true;
+          }).map((lead: any) => (
+            <Paper key={lead.id} sx={{
+              p: 2,
+              bgcolor: glassTheme.cardBg,
+              border: `1px solid ${glassTheme.cardBorder}`,
+              borderRadius: 2,
+              cursor: 'pointer',
+              transition: 'border-color 0.2s',
+              '&:hover': { borderColor: '#6366f1' },
+            }}
+            onClick={() => openLeadDetails(lead)}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="subtitle2" fontWeight="bold" sx={{ color: glassTheme.textPrimary }}>
+                  {lead.firstName} {lead.lastName}
+                </Typography>
+                <Chip 
+                  label={lead.status.replace(/_/g, ' ')} 
+                  color={STATUS_COLORS[lead.status] || 'default'} 
+                  size="small"
+                  onClick={(e) => { e.stopPropagation(); const current = STATUSES.indexOf(lead.status); const next = STATUSES[(current + 1) % STATUSES.length]; updateLeadStatus(lead.id, next); }}
+                />
+              </Box>
+              {lead.company && <Typography variant="caption" sx={{ color: glassTheme.textSecondary, display: 'block', mb: 0.5 }}>{lead.company}</Typography>}
+              {lead.email && <Typography variant="caption" sx={{ color: 'rgba(99,102,241,0.8)', display: 'block', mb: 0.5 }}>{lead.email}</Typography>}
+              {lead.leadServices && lead.leadServices.length > 0 && (
+                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 0.5 }}>
+                  {lead.leadServices.map((s: any) => (
+                    <Chip key={s.service.id} size="small" icon={<span>{s.service.icon}</span>} label={s.service.name} sx={{ bgcolor: 'rgba(99,102,241,0.2)', color: '#a5b4fc', fontSize: '0.7rem' }} />
+                  ))}
+                </Box>
+              )}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                <Typography variant="caption" sx={{ color: glassTheme.textSecondary }}>
+                  {new Date(lead.createdAt).toLocaleDateString()}
+                </Typography>
+                <Box>
+                  <IconButton size="small" onClick={(e) => { e.stopPropagation(); copyOnboardLink(lead.token); }} sx={{ color: glassTheme.textPrimary }}>
+                    <ContentCopy fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); deleteLead(lead.id); }}>
+                    <Delete fontSize="small" />
+                  </IconButton>
+                </Box>
+              </Box>
+            </Paper>
+          ))}
+          {leads.filter(l => {
+            if (tab === 1) return l.leadServices?.some((s: any) => s.service.name.includes('AI'));
+            if (tab === 2) return l.leadServices?.some((s: any) => ['Tax', 'Payroll'].some((t: string) => s.service.name.includes(t)));
+            return true;
+          }).length === 0 && (
+            <Typography sx={{ color: glassTheme.textSecondary, textAlign: 'center', py: 4 }}>
+              No leads yet. Create your first lead!
+            </Typography>
+          )}
+        </Stack>
+      ) : (
+      /* Desktop: Table layout */
       <TableContainer component={Paper} sx={{ 
         bgcolor: glassTheme.tableBg, 
         border: `1px solid ${glassTheme.cardBorder}`,
@@ -1428,6 +1525,7 @@ function AdminDashboardContent() {
           </TableBody>
         </Table>
       </TableContainer>
+      )}
       {/* Bulk Actions Toolbar */}
       {selectedLeadIds.size > 0 && (
         <Paper sx={{
@@ -1524,6 +1622,7 @@ function AdminDashboardContent() {
         onClose={() => setDialogOpen(false)} 
         maxWidth="sm" 
         fullWidth
+        fullScreen={isSmallMobile}
         PaperProps={{
           sx: { 
             bgcolor: 'rgba(15,23,42,1)', 
@@ -1733,6 +1832,7 @@ function AdminDashboardContent() {
         onClose={() => setPrepaidDialogOpen(false)} 
         maxWidth="sm" 
         fullWidth
+        fullScreen={isSmallMobile}
         PaperProps={{
           sx: { 
             bgcolor: 'rgba(15,23,42,1)', 
@@ -1865,6 +1965,7 @@ function AdminDashboardContent() {
         onClose={() => setServicesTabOpen(false)} 
         maxWidth="md" 
         fullWidth
+        fullScreen={isSmallMobile}
         PaperProps={{
           sx: { 
             bgcolor: 'rgba(15,23,42,1)', 
@@ -1947,6 +2048,7 @@ function AdminDashboardContent() {
         onClose={() => setEditingService(null)} 
         maxWidth="sm" 
         fullWidth
+        fullScreen={isSmallMobile}
         PaperProps={{
           sx: { 
             bgcolor: 'rgba(15,23,42,1)', 
@@ -1989,6 +2091,7 @@ function AdminDashboardContent() {
         onClose={() => setViewDialogOpen(false)} 
         maxWidth="md" 
         fullWidth
+        fullScreen={isSmallMobile}
         PaperProps={{
           sx: { 
             bgcolor: 'rgba(15,23,42,1)', 
@@ -2614,6 +2717,7 @@ function AdminDashboardContent() {
         onClose={() => setProposeOpen(false)} 
         maxWidth="sm" 
         fullWidth
+        fullScreen={isSmallMobile}
         PaperProps={{
           sx: { 
             bgcolor: 'rgba(15,23,42,1)', 
@@ -2683,6 +2787,7 @@ function AdminDashboardContent() {
         onClose={() => setRequestDocOpen(false)} 
         maxWidth="sm" 
         fullWidth
+        fullScreen={isSmallMobile}
         PaperProps={{
           sx: { 
             bgcolor: 'rgba(15,23,42,1)', 
@@ -2727,6 +2832,7 @@ function AdminDashboardContent() {
         onClose={() => setCreateProposalOpen(false)} 
         maxWidth="md" 
         fullWidth
+        fullScreen={isSmallMobile}
         PaperProps={{
           sx: { 
             bgcolor: 'rgba(15,23,42,1)', 
@@ -2893,6 +2999,7 @@ function AdminDashboardContent() {
         onClose={() => setCustomServiceOpen(false)} 
         maxWidth="sm" 
         fullWidth
+        fullScreen={isSmallMobile}
         PaperProps={{
           sx: { 
             bgcolor: 'rgba(15,23,42,1)', 
@@ -3001,6 +3108,7 @@ function AdminDashboardContent() {
         onClose={() => setInvoiceDialogOpen(false)}
         maxWidth="md"
         fullWidth
+        fullScreen={isSmallMobile}
         PaperProps={{
           sx: {
             background: glassTheme.cardBg,
