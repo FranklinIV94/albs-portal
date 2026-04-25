@@ -16,6 +16,7 @@ import {
   CloudUpload, Add, Send, AttachMoney, Settings, TrendingUp, AccountBalance,
   Assignment, Note, History, CheckBox, Flag, ViewKanban, FileDownload, ArrowForward, Close
 } from '@mui/icons-material';
+import AdminSidebar from '../../components/AdminSidebar';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, AreaChart, Area
@@ -837,13 +838,19 @@ function AdminDashboardContent() {
 
   return (
     <Box sx={{ 
-      p: 4, 
-      maxWidth: 1600, 
-      mx: 'auto', 
-      background: glassTheme.background, 
+      display: 'flex',
       minHeight: '100vh',
+      background: glassTheme.background,
       backgroundAttachment: 'fixed',
     }}>
+      <AdminSidebar activeTab={tab} onTabChange={setTab} onManageServices={() => setServicesTabOpen(true)} />
+      <Box sx={{ 
+        flex: 1,
+        p: 4, 
+        maxWidth: 1600, 
+        mx: 'auto', 
+        minHeight: '100vh',
+      }}>
       {/* Header with gradient */}
       <Box sx={{ 
         mb: 4, 
@@ -977,27 +984,7 @@ function AdminDashboardContent() {
         ))}
       </Box>
 
-      {/* Tabs */}
-      <Box sx={{ mb: 2 }}>
-        <Tabs 
-          value={tab} 
-          onChange={(_, v) => setTab(v)}
-          sx={{
-            '& .MuiTab-root': { color: glassTheme.textSecondary },
-            '& .Mui-selected': { color: '#6366f1' },
-            '& .MuiTabs-indicator': { background: '#6366f1' },
-          }}
-        >
-          <Tab label={`All Leads (${leads.length})`} />
-          <Tab label="AI Services" />
-          <Tab label="Payroll" />
-          <Tab label="📋 All Invoices" />
-          <Tab label="👥 Clients" />
-          <Tab label="📊 Pipeline" />
-          <Tab label="🤖 AIIO Tracker" />
-          {analytics && <Tab label="📈 Analytics" />}
-        </Tabs>
-      </Box>
+
 
       {/* All Invoices Tab (tab === 3) */}
       {tab === 3 && (
@@ -3215,6 +3202,7 @@ function AdminDashboardContent() {
           </Button>
         </DialogActions>
       </Dialog>
+    </Box>
     </Box>
   );
 }
