@@ -82,6 +82,7 @@ const CATEGORIES: Record<string, string> = {
   PAYROLL_BOOKKEEPING: '💼 Payroll & Bookkeeping',
   BOOKKEEPING: '📒 Standalone Bookkeeping',
   MARKETING: '📣 Marketing',
+  MARKETING_OPS: '🚀 Marketing Ops',
   CUSTOM: '🎯 Custom Services',
 };
 
@@ -1646,7 +1647,7 @@ function AdminDashboardContent() {
                 Limit Service Categories (leave empty for all)
               </Typography>
               <FormGroup row>
-                {['AI_SERVICES', 'TAX_BUSINESS', 'PAYROLL_BOOKKEEPING', 'MARKETING'].map(cat => (
+                {['AI_SERVICES', 'TAX_BUSINESS', 'PAYROLL_BOOKKEEPING', 'MARKETING', 'MARKETING_OPS'].map(cat => (
                   <FormControlLabel
                     key={cat}
                     control={
