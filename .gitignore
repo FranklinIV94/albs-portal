@@ -38,3 +38,4 @@ prisma/migrations/
 .env.local
 *.log
 .env
+.env*.local
