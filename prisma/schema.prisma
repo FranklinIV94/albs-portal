@@ -269,6 +269,7 @@ enum ServiceCategory {
   AIIO
   AIIO_MONTHLY
   AI_CHATBOT
+  REPUTATION_MANAGEMENT
 }
 
 // Lead-Service junction (for custom pricing)
