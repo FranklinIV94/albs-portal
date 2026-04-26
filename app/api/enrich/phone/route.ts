@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { parsePhoneNumberFromString, getCountryCallingCode, Metadata } from 'libphonenumber-js';
 
-// POST /api/enrich/phone - Validate and enrich a phone number
-// Uses phonenumbers library (Python GhostTrack-equivalent) for carrier/location data
+// POST /api/enrich/phone - Validate and enrich a phone number using libphonenumber-js (pure JS, works in serverless)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -14,58 +14,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Run GhostTrack phone lookup via Python
-    const { execFile } = require('child_process');
-    const util = require('util');
-    const execFileAsync = util.promisify(execFile);
-
-    const pythonScript = `
-import json
-import sys
-
-try:
-    import phonenumbers
-    from phonenumbers import carrier, geocoder, timezone
-    
-    phone = "${phone.replace(/"/g, '\\"')}"
-    default_region = "${countryCode || 'US'}"
-    
-    parsed = phonenumbers.parse(phone, default_region)
-    
-    result = {
-        "valid": phonenumbers.is_valid_number(parsed),
-        "possible": phonenumbers.is_possible_number(parsed),
-        "formatted_international": phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL),
-        "formatted_national": phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.NATIONAL),
-        "formatted_e164": phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164),
-        "country_code": str(parsed.country_code),
-        "region_code": phonenumbers.region_code_for_number(parsed) or "",
-        "carrier": carrier.name_for_number(parsed, "en") or "",
-        "location": geocoder.description_for_number(parsed, "en") or "",
-        "number_type": str(phonenumbers.number_type(parsed)),
-        "timezones": [str(tz) for tz in (timezone.time_zones_for_number(parsed) or [])],
-    }
-    
-    print(json.dumps(result))
-except Exception as e:
-    print(json.dumps({"error": str(e)}))
-`;
-
     try {
-      const { stdout } = await execFileAsync('python3', ['-c', pythonScript], { timeout: 10000 });
-      const phoneData = JSON.parse(stdout.trim());
+      const parsed = parsePhoneNumberFromString(phone, countryCode || 'US');
 
-      if (phoneData.error) {
+      if (!parsed) {
         return NextResponse.json(
-          { error: phoneData.error },
-          { status: 500 }
+          { error: 'Could not parse phone number' },
+          { status: 400 }
         );
       }
+
+      // Number type mapping
+      const typeMap: Record<number, string> = {
+        0: 'FIXED_LINE',
+        1: 'MOBILE',
+        2: 'FIXED_LINE_OR_MOBILE',
+        3: 'TOLL_FREE',
+        4: 'PREMIUM_RATE',
+        5: 'SHARED_COST',
+        6: 'VOIP',
+        7: 'PERSONAL_NUMBER',
+        8: 'PAGER',
+        9: 'UAN',
+        10: 'UNKNOWN',
+      };
 
       return NextResponse.json({
         success: true,
         phone,
-        ...phoneData,
+        valid: parsed.isValid(),
+        possible: parsed.isPossible(),
+        formatted_international: parsed.formatInternational(),
+        formatted_national: parsed.formatNational(),
+        formatted_e164: parsed.format('E.164'),
+        country_calling_code: `+${parsed.countryCallingCode}`,
+        country: parsed.country || '',
+        region_code: parsed.country || '',
+        number_type: typeMap[parsed.getType() as unknown as number] || 'UNKNOWN',
+        // Note: carrier data requires external API; libphonenumber-js doesn't include it
+        carrier: '',
+        location: '', // Geocoder requires external data
+        timezones: parsed.country ? [countryToTimezone(parsed.country)] : [],
       });
     } catch (err: any) {
       return NextResponse.json(
@@ -80,4 +69,35 @@ except Exception as e:
       { status: 500 }
     );
   }
+}
+
+// Simple country-to-timezone mapping for common regions
+function countryToTimezone(country: string): string {
+  const map: Record<string, string> = {
+    US: 'America/New_York',
+    GB: 'Europe/London',
+    CA: 'America/Toronto',
+    AU: 'Australia/Sydney',
+    DE: 'Europe/Berlin',
+    FR: 'Europe/Paris',
+    JP: 'Asia/Tokyo',
+    IN: 'Asia/Kolkata',
+    BR: 'America/Sao_Paulo',
+    MX: 'America/Mexico_City',
+    ES: 'Europe/Madrid',
+    IT: 'Europe/Rome',
+    NL: 'Europe/Amsterdam',
+    SE: 'Europe/Stockholm',
+    CH: 'Europe/Zurich',
+    NZ: 'Pacific/Auckland',
+    SG: 'Asia/Singapore',
+    HK: 'Asia/Hong_Kong',
+    KR: 'Asia/Seoul',
+    ZA: 'Africa/Johannesburg',
+    AE: 'Asia/Dubai',
+    IL: 'Asia/Jerusalem',
+    RU: 'Europe/Moscow',
+    CN: 'Asia/Shanghai',
+  };
+  return map[country] || 'Unknown';
 }
