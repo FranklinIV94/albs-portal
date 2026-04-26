@@ -42,7 +42,7 @@ try:
         "region_code": phonenumbers.region_code_for_number(parsed) or "",
         "carrier": carrier.name_for_number(parsed, "en") or "",
         "location": geocoder.description_for_number(parsed, "en") or "",
-        "number_type": str(parsed.number_type),
+        "number_type": str(phonenumbers.number_type(parsed)),
         "timezones": [str(tz) for tz in (timezone.time_zones_for_number(parsed) or [])],
     }
     

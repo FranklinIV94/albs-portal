@@ -273,7 +273,7 @@ function AdminDashboardContent() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [customPrices, setCustomPrices] = useState<Record<string, number>>({});
   const [savingServices, setSavingServices] = useState(false);
-  const [leadTab, setLeadTab] = useState(0); // 0: Info, 1: Services, 2: Progress, 3: Chat, 4: Client Requests, 5: Billing, 6: Tasks, 7: Notes, 8: Activity
+  const [leadTab, setLeadTab] = useState(0); // 0: Info, 1: Services, 2: Progress, 3: Chat, 4: Client Requests, 5: Billing, 6: Tasks, 7: Notes, 8: Activity, 9: Enrichment
   
   const chatLeadId = searchParams.get('chat');
   
@@ -327,6 +327,12 @@ function AdminDashboardContent() {
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [loadingActivity, setLoadingActivity] = useState(false);
   
+  // Enrichment state
+  const [enrichLoading, setEnrichLoading] = useState<string[]>([]); // 'apollo' | 'social' | 'phone' | 'full'
+  const [socialProfiles, setSocialProfiles] = useState<Record<string, string>>({});
+  const [phoneValidation, setPhoneValidation] = useState<any>(null);
+  const [enrichmentExpanded, setEnrichmentExpanded] = useState(true);
+
   // Invoice state
   const [invoices, setInvoices] = useState<any[]>([]);
   const [allInvoices, setAllInvoices] = useState<any[]>([]);
@@ -815,6 +821,137 @@ function AdminDashboardContent() {
     } finally {
       setSavingServices(false);
     }
+  };
+
+  // === Enrichment Functions ===
+  const deriveUsernames = (lead: Lead): string[] => {
+    const usernames: string[] = [];
+    if (lead.email) {
+      const localPart = lead.email.split('@')[0];
+      usernames.push(localPart);
+      const cleanName = localPart.replace(/[._-]/g, '');
+      if (cleanName !== localPart) usernames.push(cleanName);
+      if (lead.firstName && lead.lastName) {
+        usernames.push(`${lead.firstName}${lead.lastName}`.toLowerCase());
+        usernames.push(`${lead.firstName}_${lead.lastName}`.toLowerCase());
+        usernames.push(`${lead.firstName}.${lead.lastName}`.toLowerCase());
+      }
+    } else if (lead.firstName && lead.lastName) {
+      usernames.push(`${lead.firstName}${lead.lastName}`.toLowerCase());
+      usernames.push(`${lead.firstName}_${lead.lastName}`.toLowerCase());
+    }
+    return Array.from(new Set(usernames)).slice(0, 5);
+  };
+
+  const enrichSocial = async () => {
+    if (!selectedLead) return;
+    setEnrichLoading(prev => [...prev, 'social']);
+    setSocialProfiles({});
+    try {
+      const usernames = deriveUsernames(selectedLead);
+      if (usernames.length === 0) { setEnrichLoading(prev => prev.filter(x => x !== 'social')); return; }
+      const res = await fetch('/api/enrich/social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usernames }),
+      });
+      const data = await res.json();
+      if (data.success && data.results) {
+        const allProfiles: Record<string, string> = {};
+        for (const [, profiles] of Object.entries(data.results)) {
+          if (typeof profiles === 'object' && profiles !== null && !('error' in (profiles as any))) {
+            Object.assign(allProfiles, profiles);
+          }
+        }
+        setSocialProfiles(allProfiles);
+      }
+    } catch (err) {
+      console.error('Social enrichment failed:', err);
+    } finally {
+      setEnrichLoading(prev => prev.filter(x => x !== 'social'));
+    }
+  };
+
+  const enrichPhone = async () => {
+    if (!selectedLead?.phone) return;
+    setEnrichLoading(prev => [...prev, 'phone']);
+    setPhoneValidation(null);
+    try {
+      const res = await fetch('/api/enrich/phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: selectedLead.phone, countryCode: 'US' }),
+      });
+      const data = await res.json();
+      if (data.success) setPhoneValidation(data);
+    } catch (err) {
+      console.error('Phone enrichment failed:', err);
+    } finally {
+      setEnrichLoading(prev => prev.filter(x => x !== 'phone'));
+    }
+  };
+
+  const enrichFull = async () => {
+    if (!selectedLead) return;
+    setEnrichLoading(prev => [...prev, 'full']);
+    try {
+      // 1. Apollo enrichment
+      if (selectedLead.email) {
+        await fetch('/api/enrich', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId: selectedLead.id, email: selectedLead.email }),
+        });
+        fetchLeads();
+      }
+      // 2. Social
+      const usernames = deriveUsernames(selectedLead);
+      if (usernames.length > 0) {
+        const res = await fetch('/api/enrich/social', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usernames }),
+        });
+        const data = await res.json();
+        if (data.success && data.results) {
+          const allProfiles: Record<string, string> = {};
+          for (const [, profiles] of Object.entries(data.results)) {
+            if (typeof profiles === 'object' && profiles !== null && !('error' in (profiles as any))) {
+              Object.assign(allProfiles, profiles);
+            }
+          }
+          setSocialProfiles(allProfiles);
+        }
+      }
+      // 3. Phone
+      if (selectedLead.phone) {
+        const res = await fetch('/api/enrich/phone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: selectedLead.phone, countryCode: 'US' }),
+        });
+        const data = await res.json();
+        if (data.success) setPhoneValidation(data);
+      }
+    } catch (err) {
+      console.error('Full enrichment failed:', err);
+    } finally {
+      setEnrichLoading(prev => prev.filter(x => x !== 'full'));
+    }
+  };
+
+  // Platform emoji map
+  const platformEmoji: Record<string, string> = {
+    Twitter: '🐦', X: '🐦', LinkedIn: '💼', Instagram: '📸', TikTok: '🎵',
+    YouTube: '📺', Facebook: '👤', GitHub: '🐙', Reddit: '🤖', Pinterest: '📌',
+    Twitch: '🎮', Spotify: '🎧', Medium: '✍️', Telegram: '✈️', Snapchat: '👻',
+    Tumblr: '📝', Vimeo: '🎬', SoundCloud: '🔊', Patreon: '🎨', Keybase: '🔑',
+  };
+  const getPlatformEmoji = (platform: string) => {
+    for (const [key, emoji] of Object.entries(platformEmoji)) {
+      if (platform.toLowerCase().includes(key.toLowerCase())) return emoji;
+    }
+    return '🔗';
   };
 
   const copyOnboardLink = (token: string) => {
@@ -2138,6 +2275,7 @@ function AdminDashboardContent() {
                 <Tab label="Tasks" />
                 <Tab label="Notes" />
                 <Tab label="Activity" />
+                <Tab label="🔍 Enrichment" />
               </Tabs>
 
               {/* Tab 0: Contact Info */}
@@ -2691,6 +2829,142 @@ function AdminDashboardContent() {
                       Refresh
                     </Button>
                   </Box>
+                </Box>
+              )}
+
+              {/* Tab 9: Enrichment */}
+              {leadTab === 9 && selectedLead && (
+                <Box>
+                  <Typography variant="h6" gutterBottom sx={{ color: '#8b5cf6' }}>Lead Enrichment</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Enrich this lead with social profiles, phone validation, and Apollo data.
+                  </Typography>
+
+                  {/* Full Enrichment */}
+                  <Paper variant="outlined" sx={{ p: 2, mb: 3, borderColor: '#6366f1', bgcolor: 'rgba(99,102,241,0.08)' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box>
+                        <Typography fontWeight="bold">⚡ Full Enrichment</Typography>
+                        <Typography variant="body2" color="text.secondary">Run Apollo + Social + Phone all at once</Typography>
+                      </Box>
+                      <Button 
+                        variant="contained"
+                        onClick={enrichFull}
+                        disabled={enrichLoading.includes('full')}
+                        startIcon={enrichLoading.includes('full') ? <CircularProgress size={16} /> : undefined}
+                        sx={{ bgcolor: '#6366f1', '&:hover': { bgcolor: '#4f46e5' } }}
+                      >
+                        {enrichLoading.includes('full') ? 'Enriching...' : 'Run Full Enrichment'}
+                      </Button>
+                    </Box>
+                  </Paper>
+
+                  <Grid container spacing={2}>
+                    {/* Social Profiles */}
+                    <Grid item xs={12} md={6}>
+                      <Paper variant="outlined" sx={{ p: 2, borderColor: glassTheme.cardBorder }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                          <Typography fontWeight="bold" sx={{ color: '#8b5cf6' }}>🔍 Social Profiles</Typography>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={enrichSocial}
+                            disabled={enrichLoading.includes('social') || !selectedLead.email}
+                            startIcon={enrichLoading.includes('social') ? <CircularProgress size={14} /> : undefined}
+                            sx={{ borderColor: glassTheme.cardBorder, color: glassTheme.textPrimary }}
+                          >
+                            {enrichLoading.includes('social') ? 'Searching...' : 'Find Profiles'}
+                          </Button>
+                        </Box>
+                        {!selectedLead.email && (
+                          <Typography variant="body2" color="text.secondary">No email on file — add one first</Typography>
+                        )}
+                        {Object.keys(socialProfiles).length > 0 ? (
+                          <Stack spacing={1}>
+                            {Object.entries(socialProfiles).map(([platform, url]) => (
+                              <Box key={platform} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.03)' }}>
+                                <Typography>{getPlatformEmoji(platform)}</Typography>
+                                <Typography variant="body2" sx={{ flex: 1 }}>{platform}</Typography>
+                                <a href={url as string} target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontSize: '0.8rem' }}>
+                                  View Profile
+                                </a>
+                              </Box>
+                            ))}
+                          </Stack>
+                        ) : enrichLoading.includes('social') ? (
+                          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                            Searching across 400+ platforms...
+                          </Typography>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                            Click "Find Profiles" to search
+                          </Typography>
+                        )}
+                      </Paper>
+                    </Grid>
+
+                    {/* Phone Validation */}
+                    <Grid item xs={12} md={6}>
+                      <Paper variant="outlined" sx={{ p: 2, borderColor: glassTheme.cardBorder }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                          <Typography fontWeight="bold" sx={{ color: '#10b981' }}>📱 Phone Validation</Typography>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={enrichPhone}
+                            disabled={enrichLoading.includes('phone') || !selectedLead.phone}
+                            startIcon={enrichLoading.includes('phone') ? <CircularProgress size={14} /> : undefined}
+                            sx={{ borderColor: glassTheme.cardBorder, color: glassTheme.textPrimary }}
+                          >
+                            {enrichLoading.includes('phone') ? 'Validating...' : 'Validate Phone'}
+                          </Button>
+                        </Box>
+                        {!selectedLead.phone && (
+                          <Typography variant="body2" color="text.secondary">No phone on file</Typography>
+                        )}
+                        {phoneValidation ? (
+                          <Stack spacing={1}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography>{phoneValidation.valid ? '✅' : '❌'}</Typography>
+                              <Typography>{phoneValidation.valid ? 'Valid Number' : phoneValidation.possible ? 'Possibly Valid' : 'Invalid Number'}</Typography>
+                            </Box>
+                            {phoneValidation.formatted_international && (
+                              <Typography variant="body2" sx={{ color: '#cbd5e1' }}>{phoneValidation.formatted_international}</Typography>
+                            )}
+                            {phoneValidation.carrier && (
+                              <Typography variant="body2" sx={{ color: '#cbd5e1' }}>Carrier: {phoneValidation.carrier}</Typography>
+                            )}
+                            {phoneValidation.location && (
+                              <Typography variant="body2" sx={{ color: '#cbd5e1' }}>Location: {phoneValidation.location}</Typography>
+                            )}
+                            {phoneValidation.region_code && (
+                              <Typography variant="body2" sx={{ color: '#cbd5e1' }}>Region: {phoneValidation.region_code}</Typography>
+                            )}
+                            {phoneValidation.timezones && phoneValidation.timezones.length > 0 && (
+                              <Typography variant="body2" sx={{ color: '#cbd5e1' }}>Timezone: {phoneValidation.timezones.join(', ')}</Typography>
+                            )}
+                          </Stack>
+                        ) : enrichLoading.includes('phone') ? (
+                          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                            Validating phone number...
+                          </Typography>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                            Click "Validate Phone" to check
+                          </Typography>
+                        )}
+                      </Paper>
+                    </Grid>
+                  </Grid>
+
+                  {/* Usernames derived from email */}
+                  {selectedLead.email && (
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Searching usernames: {deriveUsernames(selectedLead).join(', ')}
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               )}
             </Stack>
