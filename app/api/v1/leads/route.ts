@@ -25,12 +25,12 @@ export async function GET(request: NextRequest) {
 
     // Build where clause
     const where: any = {};
-    if (status) where.status = status;
+    if (status) where.status = status as any;
     if (industry) where.aiiIndustry = industry;
-    if (city) where.aiiCity = { contains: city, mode: 'insensitive' };
+    if (city) where.aiiCity = { contains: city, mode: 'insensitive' } as any;
     if (state) where.aiiState = state;
     if (tier) where.aiiTier = tier;
-    if (minScore) where.aiiScore = { gte: minScore };
+    if (minScore) where.aiiScore = { gte: minScore } as any;
     if (search) {
       where.OR = [
         { firstName: { contains: search, mode: 'insensitive' } },
