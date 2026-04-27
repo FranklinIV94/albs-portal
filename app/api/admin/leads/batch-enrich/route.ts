@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     for (const lead of leads) {
       try {
         const updates: any = {};
-        const enrichment: any = lead.enrichedData ? { ...lead.enrichedData } : {};
+        const enrichment: any = lead.enrichedData ? { ...(lead.enrichedData as object) } : {};
 
         // 1. Phone validation
         if (lead.phone) {
