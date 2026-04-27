@@ -98,6 +98,7 @@ model Lead {
   escalations    Escalation[]
   invoices      Invoice[]
   outreachLogs   AiiOutreachLog[]
+  marketingTargets MarketingTarget[]
   client         Client?  // Link to converted Client record
 }
 
@@ -673,6 +674,87 @@ enum InvoiceStatus {
   PAID
   OVERDUE
   CANCELED
+}
+
+// Marketing Plans
+model MarketingPlan {
+  id          String   @id @default(cuid())
+  name        String   // e.g. "Miami Electrical Q2 2026"
+  description String?
+  status      MarketingPlanStatus @default(DRAFT)
+  targetCloseRate Int?  // e.g. 40
+  actualCloseRate  Int?
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Int?     // in cents
+  totalLeads  Int      @default(0)
+  convertedLeads Int   @default(0)
+  totalRevenue Int?    // in cents
+  notes       String?
+  createdById String?  // who created it
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  targets     MarketingTarget[]
+  metrics     MarketingMetric[]
+}
+
+model MarketingTarget {
+  id          String   @id @default(cuid())
+  planId      String
+  plan        MarketingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  leadId      String?
+  lead        Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  companyName String?
+  contactName String?
+  phone       String?
+  email       String?
+  industry    String?
+  city        String?
+  state       String?
+  dealSize    Int?     // in cents
+  outreachStatus OutreachTargetStatus @default(PENDING)
+  touchCount  Int      @default(0)
+  lastTouchDate DateTime?
+  nextAction  String?
+  nextActionDate DateTime?
+  notes       String?
+  outcome     String?  // closed_won | closed_lost | disqualified | paused
+  closedAt    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MarketingMetric {
+  id          String   @id @default(cuid())
+  planId      String
+  plan        MarketingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  date        DateTime @default(now())
+  metric      String   // e.g. "calls_made", "emails_sent", "meetings_booked", "deals_closed"
+  value       Int
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+enum MarketingPlanStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum OutreachTargetStatus {
+  PENDING
+  CONTACTED
+  RESPONDED
+  MEETING_BOOKED
+  PROPOSAL_SENT
+  NEGOTIATING
+  CLOSED_WON
+  CLOSED_LOST
+  DISQUALIFIED
 }
 
 // AIIO Outreach Log
