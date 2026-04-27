@@ -160,7 +160,8 @@ export async function PATCH(request: NextRequest) {
       aiiTier, aiiScore, aiiOutreachHook, aiiIndustry, aiiCity, aiiState, 
       aiiWebsite, aiiOperationalSignals, aiiAssignedTo, aiiLastTouched,
       aiiNextAction, aiiNextActionDate, aiiPipelineStage, aiiProduct, 
-      aiiFee, aiiProbability, aiiWeightedValue, aiiCloseDate } = body;
+      aiiFee, aiiProbability, aiiWeightedValue, aiiCloseDate,
+      enrichedData } = body;
 
 
     if (!leadId) {
@@ -200,6 +201,7 @@ export async function PATCH(request: NextRequest) {
         ...(aiiProbability !== undefined && { aiiProbability }),
         ...(weightedValue !== undefined && { aiiWeightedValue: weightedValue }),
         ...(aiiCloseDate !== undefined && { aiiCloseDate: aiiCloseDate ? new Date(aiiCloseDate) : undefined }),
+        ...(enrichedData !== undefined && { enrichedData }),
       },
     });
 
