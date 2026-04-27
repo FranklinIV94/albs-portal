@@ -90,8 +90,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       // Contracts
       contracts: lead.contracts.map(c => ({
         id: c.id,
-        name: c.name,
-        status: c.status,
+        contractType: c.contractType,
+        signedAt: c.signedAt,
       })),
       // AIIO data for pipeline context
       pipeline: {
