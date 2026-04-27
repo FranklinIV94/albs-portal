@@ -2325,7 +2325,7 @@ function AdminDashboardContent() {
                           <Paper variant="outlined" sx={{ p: 1.5, borderColor: '#10b981', bgcolor: 'rgba(16,185,129,0.08)' }}>
                             <Typography variant="caption" sx={{ color: '#6ee7b7' }}>Opportunity Score</Typography>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography fontWeight="bold" sx={{ color: selectedLead.aiiScore >= 80 ? '#10b981' : selectedLead.aiiScore >= 70 ? '#f59e0b' : '#ef4444', fontSize: '1.2rem' }}>{selectedLead.aiiScore || '-'}</Typography>
+                              <Typography fontWeight="bold" sx={{ color: (selectedLead.aiiScore ?? 0) >= 80 ? '#10b981' : (selectedLead.aiiScore ?? 0) >= 70 ? '#f59e0b' : '#ef4444', fontSize: '1.2rem' }}>{selectedLead.aiiScore || '-'}</Typography>
                               <Typography variant="caption" sx={{ color: '#94a3b8' }}>/ 100</Typography>
                             </Box>
                           </Paper>
