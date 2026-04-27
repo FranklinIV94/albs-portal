@@ -17,9 +17,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       orderBy: { createdAt: 'asc' },
       select: {
         id: true,
-        content: true,
+        subject: true,
+        message: true,
         status: true,
-        adminResponse: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -42,9 +42,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   try {
     const { id } = params;
     const body = await request.json();
-    const { content, isAdmin = true } = body;
+    const { message, subject, isAdmin = true } = body;
 
-    if (!content || !content.trim()) {
+    if (!message || !message.trim()) {
       return NextResponse.json({ error: 'Message content is required' }, { status: 400 });
     }
 
@@ -57,9 +57,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const clientRequest = await prisma.clientRequest.create({
       data: {
         leadId: id,
-        content: content.trim(),
+        subject: subject || 'Admin Message',
+        message: message.trim(),
         status: 'OPEN',
-        isFromAdmin: isAdmin,
       },
     });
 

@@ -77,7 +77,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       // Recent messages/requests
       recentRequests: lead.clientRequests.map(r => ({
         id: r.id,
-        content: r.content,
+        subject: r.subject,
+        message: r.message,
         status: r.status,
         createdAt: r.createdAt,
       })),
