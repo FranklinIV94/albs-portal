@@ -44,6 +44,7 @@ export const NAV_ITEMS: SidebarSection[] = [
     title: 'SETTINGS',
     items: [
       { label: 'Manage Services', icon: '⚙️', tabIndex: null },
+      { label: 'Marketing Plans', icon: '📣', tabIndex: null },
     ],
   },
 ];
@@ -52,14 +53,16 @@ interface AdminSidebarProps {
   activeTab: number;
   onTabChange: (tabIndex: number) => void;
   onManageServices?: () => void;
+  onMarketingPlans?: () => void;
   mobileOpen?: boolean;
   onMobileToggle?: () => void;
 }
 
-function SidebarContent({ activeTab, onTabChange, onManageServices, collapsed, onToggleCollapse }: {
+function SidebarContent({ activeTab, onTabChange, onManageServices, onMarketingPlans, collapsed, onToggleCollapse }: {
   activeTab: number;
   onTabChange: (tabIndex: number) => void;
   onManageServices?: () => void;
+  onMarketingPlans?: () => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
 }) {
@@ -154,6 +157,8 @@ function SidebarContent({ activeTab, onTabChange, onManageServices, collapsed, o
                           onTabChange(item.tabIndex);
                         } else if (item.label === 'Manage Services' && onManageServices) {
                           onManageServices();
+                        } else if (item.label === 'Marketing Plans' && onMarketingPlans) {
+                          onMarketingPlans();
                         }
                       }}
                       sx={{
@@ -270,6 +275,13 @@ export default function AdminSidebar({ activeTab, onTabChange, onManageServices,
     }
   };
 
+  const handleMarketingPlans = () => {
+    if (onMarketingPlans) onMarketingPlans();
+    if (isMobile && onMobileToggle) {
+      onMobileToggle();
+    }
+  };
+
   // Mobile: Drawer overlay
   if (isMobile) {
     return (
@@ -291,6 +303,7 @@ export default function AdminSidebar({ activeTab, onTabChange, onManageServices,
           activeTab={activeTab}
           onTabChange={handleTabChange}
           onManageServices={handleManageServices}
+          onMarketingPlans={handleMarketingPlans}
           collapsed={false}
           onToggleCollapse={() => setCollapsed(!collapsed)}
         />
@@ -304,6 +317,7 @@ export default function AdminSidebar({ activeTab, onTabChange, onManageServices,
       activeTab={activeTab}
       onTabChange={onTabChange}
       onManageServices={onManageServices}
+      onMarketingPlans={onMarketingPlans}
       collapsed={collapsed}
       onToggleCollapse={() => setCollapsed(!collapsed)}
     />

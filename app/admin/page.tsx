@@ -1008,7 +1008,7 @@ function AdminDashboardContent() {
       background: glassTheme.background,
       backgroundAttachment: 'fixed',
     }}>
-      <AdminSidebar activeTab={tab} onTabChange={setTab} onManageServices={() => setServicesTabOpen(true)} mobileOpen={mobileSidebarOpen} onMobileToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
+      <AdminSidebar activeTab={tab} onTabChange={setTab} onManageServices={() => setServicesTabOpen(true)} onMarketingPlans={() => router.push('/admin/marketing-plans')} mobileOpen={mobileSidebarOpen} onMobileToggle={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
       <Box sx={{ 
         flex: 1,
         p: isMobile ? 2 : 4, 
