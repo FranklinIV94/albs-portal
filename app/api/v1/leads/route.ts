@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     const pipelineCounts = await prisma.lead.groupBy({
       by: ['status'],
       _count: { status: true },
-      where: status ? { status } : {},
+      where: status ? { status: status as any } : undefined,
     });
 
     const pipelineSummary = pipelineCounts.reduce((acc, item) => {
