@@ -48,6 +48,27 @@ interface Lead {
   createdAt: string;
   leadServices?: { service: Service; customPrice?: number }[];
   clientRequests?: ClientRequest[];
+  // AIIO pipeline fields
+  aiiTier?: string | null;
+  aiiScore?: number | null;
+  aiiIndustry?: string | null;
+  aiiCity?: string | null;
+  aiiState?: string | null;
+  aiiWebsite?: string | null;
+  aiiOutreachHook?: string | null;
+  aiiOperationalSignals?: string | null;
+  aiiAssignedTo?: string | null;
+  aiiLastTouched?: string | null;
+  aiiNextAction?: string | null;
+  aiiNextActionDate?: string | null;
+  aiiPipelineStage?: string | null;
+  aiiProduct?: string | null;
+  aiiFee?: number | null;
+  aiiProbability?: number | null;
+  enrichedData?: any;
+  notes?: string | null;
+  serviceCategories?: string | null;
+  onboardingCompleted?: boolean;
 }
 
 interface Service {
