@@ -2289,9 +2289,73 @@ function AdminDashboardContent() {
                   <Typography><strong>Phone:</strong> {selectedLead.phone || '-'}</Typography>
                   <Typography><strong>Status:</strong> <Chip label={selectedLead.status.replace(/_/g, ' ')} size="small" color={STATUS_COLORS[selectedLead.status] as any} /></Typography>
                   <Typography><strong>Created:</strong> {new Date(selectedLead.createdAt).toLocaleString()}</Typography>
-                  
+                  {selectedLead.aiiIndustry && (
+                    <>
+                      <Divider sx={{ my: 2, borderColor: glassTheme.cardBorder }} />
+                      <Typography variant="h6" gutterBottom sx={{ color: '#8b5cf6' }}>AIIO Intelligence</Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={6}>
+                          <Paper variant="outlined" sx={{ p: 1.5, borderColor: '#6366f1', bgcolor: 'rgba(99,102,241,0.08)' }}>
+                            <Typography variant="caption" sx={{ color: '#a5b4fc' }}>Industry</Typography>
+                            <Typography fontWeight="bold" sx={{ textTransform: 'capitalize' }}>{selectedLead.aiiIndustry.replace(/_/g, ' ')}</Typography>
+                          </Paper>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Paper variant="outlined" sx={{ p: 1.5, borderColor: '#10b981', bgcolor: 'rgba(16,185,129,0.08)' }}>
+                            <Typography variant="caption" sx={{ color: '#6ee7b7' }}>Opportunity Score</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography fontWeight="bold" sx={{ color: selectedLead.aiiScore >= 80 ? '#10b981' : selectedLead.aiiScore >= 70 ? '#f59e0b' : '#ef4444', fontSize: '1.2rem' }}>{selectedLead.aiiScore || '-'}</Typography>
+                              <Typography variant="caption" sx={{ color: '#94a3b8' }}>/ 100</Typography>
+                            </Box>
+                          </Paper>
+                        </Grid>
+                      </Grid>
+                      {/* Industry Context from enrichedData */}
+                      {selectedLead.enrichedData?.industryContext && (
+                        <Box sx={{ mt: 2 }}>
+                          <Typography variant="subtitle2" sx={{ color: '#a5b4fc', mb: 1 }}>📊 What We Know</Typography>
+                          <Stack spacing={0.5}>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Typography variant="body2" sx={{ color: '#94a3b8', minWidth: 80 }}>Services:</Typography>
+                              <Typography variant="body2">{selectedLead.enrichedData.industryContext.commonServices?.join(', ')}</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Typography variant="body2" sx={{ color: '#94a3b8', minWidth: 80 }}>Deal Size:</Typography>
+                              <Typography variant="body2">{selectedLead.enrichedData.industryContext.avgDealSize}</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Typography variant="body2" sx={{ color: '#94a3b8', minWidth: 80 }}>Cycle:</Typography>
+                              <Typography variant="body2">{selectedLead.enrichedData.industryContext.salesCycle}</Typography>
+                            </Box>
+                          </Stack>
+                          <Typography variant="subtitle2" sx={{ color: '#a5b4fc', mt: 1.5, mb: 0.5 }}>💡 Marketing Angles</Typography>
+                          <Stack spacing={0.5}>
+                            {(selectedLead.enrichedData.industryContext.marketingAngles || []).map((angle: string, i: number) => (
+                              <Typography key={i} variant="body2" sx={{ color: '#cbd5e1', pl: 1 }}>• {angle}</Typography>
+                            ))}
+                          </Stack>
+                          <Typography variant="subtitle2" sx={{ color: '#a5b4fc', mt: 1.5, mb: 0.5 }}>⚡ Key Pain Points</Typography>
+                          <Stack spacing={0.5}>
+                            {(selectedLead.enrichedData.industryContext.keyPainPoints || []).map((pain: string, i: number) => (
+                              <Typography key={i} variant="body2" sx={{ color: '#fca5a5', pl: 1 }}>• {pain}</Typography>
+                            ))}
+                          </Stack>
+                        </Box>
+                      )}
+                      {/* Digital Gaps from source data */}
+                      {selectedLead.enrichedData?.sourceData?.digitalGaps && (
+                        <Box sx={{ mt: 2 }}>
+                          <Typography variant="subtitle2" sx={{ color: '#fca5a5', mb: 0.5 }}>🚩 Digital Gaps</Typography>
+                          <Stack spacing={0.5}>
+                            {selectedLead.enrichedData.sourceData.digitalGaps.split(',').map((gap: string, i: number) => (
+                              <Chip key={i} label={gap.trim()} size="small" sx={{ bgcolor: 'rgba(239,68,68,0.2)', color: '#fca5a5', borderColor: 'rgba(239,68,68,0.3)', border: 1 }} />
+                            ))}
+                          </Stack>
+                        </Box>
+                      )}
+                    </>
+                  )}
                   <Divider sx={{ my: 2, borderColor: glassTheme.cardBorder }} />
-                  
                   <Typography variant="h6" gutterBottom sx={{ color: '#8b5cf6' }}>Quick Actions</Typography>
                   <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 1 }}>
                     <Button variant="outlined" startIcon={<Chat />} onClick={() => setLeadTab(3)} sx={{ borderColor: glassTheme.cardBorder, color: glassTheme.textPrimary }}>
