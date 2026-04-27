@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
                 valid: parsed.isValid(),
                 possible: parsed.isPossible(),
                 formatted: parsed.formatInternational(),
-                type: getPhoneType(parsed.getType()),
+                type: getPhoneType(parsed.getType() ?? -1),
               };
             }
           } catch (e) {
