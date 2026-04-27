@@ -35,9 +35,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           orderBy: { createdAt: 'desc' },
           take: 20,
         },
-        contracts: {
-          where: { deletedAt: null },
-        },
+        contracts: true,
         payments: {
           orderBy: { createdAt: 'desc' },
           take: 10,
